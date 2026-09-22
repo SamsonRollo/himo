@@ -61,4 +61,20 @@ enum ServiceRequestPriority: string
     {
         return collect(self::cases())->mapWithKeys(fn (self $priority) => [$priority->value => $priority->label()])->all();
     }
+
+    /**
+     * Severity rank, lowest first, so sorting ascending by rank places
+     * Critical on top and Low at the bottom regardless of alphabetical
+     * enum value order.
+     */
+    public function sortRank(): int
+    {
+        return match ($this) {
+            self::Critical => 0,
+            self::Urgent => 1,
+            self::High => 2,
+            self::Normal => 3,
+            self::Low => 4,
+        };
+    }
 }

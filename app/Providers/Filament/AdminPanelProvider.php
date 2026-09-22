@@ -3,6 +3,8 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\Pages\Login;
+use App\Filament\Pages\ServiceAccomplishmentReport;
+use App\Filament\Resources\ServiceRequests\Pages\ListServiceRequests;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -14,6 +16,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
+use Filament\Tables\View\TablesRenderHook;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -78,6 +81,15 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn () => view('filament.partials.user-identity'),
+            )
+            // Priority sort shortcut, between the search field and the
+            // filters trigger, on the two tables built from
+            // ServiceRequestResource::requestColumns(): the request list
+            // and the accomplishment report.
+            ->renderHook(
+                TablesRenderHook::TOOLBAR_SEARCH_AFTER,
+                fn () => view('filament.partials.priority-sort-toggle'),
+                scopes: [ListServiceRequests::class, ServiceAccomplishmentReport::class],
             )
             ->middleware([
                 EncryptCookies::class,
