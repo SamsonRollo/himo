@@ -6,8 +6,14 @@ use App\Enums\ServiceRequestStatus as Status;
 use App\Filament\Resources\ServiceRequests\ServiceRequestResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\RenderHook;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Schema;
+use Filament\Tables\Table;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class ListServiceRequests extends ListRecords
 {
@@ -16,6 +22,34 @@ class ListServiceRequests extends ListRecords
     protected function getHeaderActions(): array
     {
         return [CreateAction::make()];
+    }
+
+    /**
+     * Render the resource tabs inside this table's native header. The tabs
+     * retain Filament's existing livewireProperty binding to activeTab.
+     */
+    public function table(Table $table): Table
+    {
+        return parent::table($table)->header(
+            fn (): HtmlString => new HtmlString(
+                Schema::make($this)
+                    ->components([$this->getTabsContentComponent()])
+                    ->toEmbeddedHtml(),
+            ),
+        );
+    }
+
+    /**
+     * ListRecords normally renders resource tabs before the table. This page
+     * owns the tab placement, so its schema contains only the embedded table.
+     */
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
+            EmbeddedTable::make(),
+            RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
+        ]);
     }
 
     /**

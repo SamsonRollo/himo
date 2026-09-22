@@ -7,6 +7,14 @@
         display: none;
     }
 
+    .fi-body-has-topbar .fi-sidebar {
+        background-color: var(--color-white) !important;
+    }
+
+    .dark .fi-body-has-topbar .fi-sidebar {
+        background-color: var(--gray-900) !important;
+    }
+
     .himo-brand-row {
         display: flex !important;
         flex-direction: row !important;
@@ -21,29 +29,15 @@
     }
 
     .fi-topbar-collapse-sidebar-btn-ctn,
+    .fi-topbar-open-sidebar-btn,
+    .fi-topbar-close-sidebar-btn,
     .fi-topbar-end .fi-global-search-ctn {
         display: none !important;
     }
 
-    .himo-sidebar-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        min-height: 2.75rem;
-        color: var(--gray-600);
-    }
-
-    .himo-sidebar-toggle:hover {
-        color: var(--gray-950);
-    }
-
-    .dark .himo-sidebar-toggle {
-        color: var(--gray-400);
-    }
-
-    .dark .himo-sidebar-toggle:hover {
-        color: var(--color-white);
+    .himo-navbar-sidebar-toggle {
+        flex: none;
+        margin-right: 10px !important;
     }
 
     .himo-user-identity {

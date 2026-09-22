@@ -38,7 +38,8 @@ class BrandingTest extends TestCase
                 'alt="HIMO — Helpdesk Intake, Management, and Job Orders"',
             ], false)
             ->assertSee('height: calc(var(--topbar-height) - 10px);', false)
-            ->assertSee('gap: 5px;', false)
+            ->assertSee('margin: 0 0 0 15px;', false)
+            ->assertSee('margin: 0 5px 0 0;', false)
             ->assertSee('height: 100%; width: auto; object-fit: contain;', false);
 
         $this->view('filament.partials.topbar-brand-styles')
@@ -49,12 +50,10 @@ class BrandingTest extends TestCase
             ->assertSee('.fi-topbar-end .fi-global-search-ctn', false);
     }
 
-    public function test_sidebar_toggle_reuses_filaments_sidebar_store_with_a_menu_icon(): void
+    public function test_topbar_toggle_reuses_filaments_sidebar_store_with_a_menu_icon(): void
     {
-        $this->view('filament.partials.sidebar-collapse-control')
-            ->assertSee('<svg', false)
-            ->assertSee('aria-label="Toggle sidebar"', false)
-            ->assertSee('title="Toggle sidebar"', false)
+        $this->view('filament.partials.topbar-brand-logo')
+            ->assertSee('Toggle sidebar', false)
             ->assertSee('$store.sidebar.isOpen ? $store.sidebar.close() : $store.sidebar.open()', false);
     }
 }
