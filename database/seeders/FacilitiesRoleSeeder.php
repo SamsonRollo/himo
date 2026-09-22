@@ -21,14 +21,19 @@ class FacilitiesRoleSeeder extends Seeder
             'View:RequestStatusOverview', 'View:CategoryVolumeChart', 'View:RequestTrendChart',
             'View:StaffWorkloadWidget', 'View:RecentRequestsWidget', 'View:RecentlyCompletedWidget',
         ];
+        // Read-only user listing + narrow availability updates only — a
+        // Supervisor must never create, edit, deactivate, or change the
+        // role of a user (that stays Create/Update/Delete:User, Super
+        // Admin-only below).
+        $supervisorUserAccess = ['ViewAny:User', 'View:User', 'Update:StaffStatus'];
         $roles = [
             'requester' => [...$common, 'Create:ServiceRequest', 'Update:ServiceRequest', 'Delete:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
             'service_staff' => [...$common, 'Work:ServiceRequest'],
-            'service_supervisor' => [...$common, ...$categoryManagement, ...$dashboardWidgets, 'Assign:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
+            'service_supervisor' => [...$common, ...$categoryManagement, ...$dashboardWidgets, ...$supervisorUserAccess, 'Assign:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
         ];
         // Reserved for Super Admin alone: never merged into a domain role.
         $superAdminOnly = [
-            'ViewAny:User', 'View:User', 'Create:User', 'Update:User', 'Delete:User',
+            'Create:User', 'Update:User', 'Delete:User',
             'Manage:SystemBackup',
         ];
         $guard = config('auth.defaults.guard', 'web');

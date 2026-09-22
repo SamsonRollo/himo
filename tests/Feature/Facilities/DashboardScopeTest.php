@@ -98,8 +98,19 @@ class DashboardScopeTest extends FacilitiesTestCase
         $workflow = app(ServiceRequestWorkflow::class);
 
         $this->actingAs($requester);
-        $active = ServiceRequest::factory()->state(['service_category_id' => $category->id])->create();
-        $completed = ServiceRequest::factory()->state(['service_category_id' => $category->id])->create();
+        // Explicit, non-overlapping windows: both requests go to the same
+        // staff member below, and the factory's random schedule could
+        // otherwise collide with the assignment conflict check.
+        $active = ServiceRequest::factory()->state([
+            'service_category_id' => $category->id,
+            'needed_start_at' => now()->addDay(),
+            'needed_end_at' => now()->addDay()->addHours(2),
+        ])->create();
+        $completed = ServiceRequest::factory()->state([
+            'service_category_id' => $category->id,
+            'needed_start_at' => now()->addDays(2),
+            'needed_end_at' => now()->addDays(2)->addHours(2),
+        ])->create();
 
         $this->actingAs($supervisor);
         $active = $workflow->assign($active, $staff->id);

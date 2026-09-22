@@ -27,7 +27,13 @@ class InterfaceTest extends FacilitiesTestCase
         $this->actingAs($owner);
         $category = ServiceCategory::factory()->create();
         Livewire::test(CreateServiceRequest::class)
-            ->fillForm(['service_category_id' => $category->id, 'location' => 'Room 101', 'description' => 'Leaking tap'])
+            ->fillForm([
+                'service_category_id' => $category->id,
+                'location' => 'Room 101',
+                'description' => 'Leaking tap',
+                'needed_start_at' => now()->addDay(),
+                'needed_end_at' => now()->addDay()->addHours(2),
+            ])
             ->call('create')->assertHasNoFormErrors();
         $request = ServiceRequest::sole();
         $this->assertSame($owner->id, $request->created_by);

@@ -19,16 +19,26 @@ use Illuminate\Validation\ValidationException;
  */
 class UserManagementTest extends FacilitiesTestCase
 {
-    public function test_only_super_admin_manages_users(): void
+    public function test_only_super_admin_creates_edits_or_deletes_users(): void
     {
         $admin = User::factory()->create()->assignRole('super_admin');
         $requester = User::factory()->create()->assignRole('requester');
         $supervisor = User::factory()->create()->assignRole('service_supervisor');
+        $target = User::factory()->create()->assignRole('service_staff');
 
         $this->assertTrue(Gate::forUser($admin)->allows('viewAny', User::class));
-        foreach ([$requester, $supervisor] as $other) {
-            $this->assertFalse(Gate::forUser($other)->allows('viewAny', User::class));
-        }
+        $this->assertTrue(Gate::forUser($admin)->allows('create', User::class));
+        $this->assertTrue(Gate::forUser($admin)->allows('update', $target));
+
+        // Supervisor may list and view (Phase 7: "access the user listing"),
+        // but never create, edit, or delete/deactivate an account.
+        $this->assertTrue(Gate::forUser($supervisor)->allows('viewAny', User::class));
+        $this->assertTrue(Gate::forUser($supervisor)->allows('view', $target));
+        $this->assertFalse(Gate::forUser($supervisor)->allows('create', User::class));
+        $this->assertFalse(Gate::forUser($supervisor)->allows('update', $target));
+        $this->assertFalse(Gate::forUser($supervisor)->allows('delete', $target));
+
+        $this->assertFalse(Gate::forUser($requester)->allows('viewAny', User::class));
     }
 
     public function test_hard_deleting_a_user_is_never_possible(): void

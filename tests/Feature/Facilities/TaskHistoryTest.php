@@ -44,8 +44,11 @@ class TaskHistoryTest extends FacilitiesTestCase
         $workflow = app(ServiceRequestWorkflow::class);
 
         $this->actingAs($owner);
-        $active = ServiceRequest::factory()->create();
-        $completed = ServiceRequest::factory()->create();
+        // Explicit, non-overlapping windows: both go to the same staff
+        // member below, and the factory's random default schedule could
+        // otherwise collide with the assignment conflict check.
+        $active = ServiceRequest::factory()->create(['needed_start_at' => now()->addDay(), 'needed_end_at' => now()->addDay()->addHours(2)]);
+        $completed = ServiceRequest::factory()->create(['needed_start_at' => now()->addDays(2), 'needed_end_at' => now()->addDays(2)->addHours(2)]);
 
         $this->actingAs($supervisor);
         $active = $workflow->assign($active, $staff->id);

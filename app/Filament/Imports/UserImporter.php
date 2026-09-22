@@ -83,7 +83,8 @@ class UserImporter extends Importer
 
     protected function afterSave(): void
     {
-        $this->record->syncRoles([$this->data['role']]);
+        // Phase 8: every imported user also gets "requester" by default.
+        $this->record->syncRoles(array_unique([$this->data['role'], 'requester']));
     }
 
     public static function getCompletedNotificationBody(Import $import): string

@@ -36,6 +36,16 @@ class HimoDemoDataSeeder extends Seeder
 
     private const REQUESTS_PER_CATEGORY = 140;
 
+    /**
+     * Tracks each staff member's next free slot so generated schedules for
+     * assigned+ requests never collide with ServiceRequestWorkflow::assign()'s
+     * own overlap check. Keyed by staff id, value is the end of their last
+     * scheduled window (plus a buffer).
+     *
+     * @var array<int, Carbon>
+     */
+    private array $staffScheduleCursor = [];
+
     /** @var array<string, array{issues: list<string>, locations: list<string>, notes: list<string>}> */
     private const CATEGORY_DATA = [
         'Electrical' => [
@@ -175,7 +185,8 @@ class HimoDemoDataSeeder extends Seeder
             ['email' => self::SUPER_ADMIN_EMAIL],
             ['name' => 'HIMO Super Admin', 'password' => Hash::make('password'), 'email_verified_at' => now()],
         );
-        $superAdmin->syncRoles([config('filament-shield.super_admin.name', 'super_admin')]);
+        // Phase 8: every user also holds "requester" by default.
+        $superAdmin->syncRoles([config('filament-shield.super_admin.name', 'super_admin'), 'requester']);
 
         $categoryNames = array_keys(self::CATEGORY_DATA);
         $supervisors = [];
@@ -185,7 +196,7 @@ class HimoDemoDataSeeder extends Seeder
                 ['email' => "supervisor{$n}@himo.test"],
                 ['name' => 'Supervisor '.chr(65 + $index).' ('.$categoryName.')', 'password' => Hash::make('password'), 'email_verified_at' => now()],
             );
-            $user->syncRoles(['service_supervisor']);
+            $user->syncRoles(['service_supervisor', 'requester']);
             $supervisors[$categoryName] = $user;
         }
 
@@ -198,7 +209,7 @@ class HimoDemoDataSeeder extends Seeder
                     ['email' => "staff{$staffCounter}@himo.test"],
                     ['name' => fake()->name(), 'password' => Hash::make('password'), 'email_verified_at' => now()],
                 );
-                $user->syncRoles(['service_staff']);
+                $user->syncRoles(['service_staff', 'requester']);
                 $staffByCategory[$categoryName][] = $user;
                 $staffCounter++;
             }
@@ -273,12 +284,29 @@ class HimoDemoDataSeeder extends Seeder
             };
             $submittedAt = now()->subDays($daysAgo)->setTime(fake()->numberBetween(7, 17), fake()->numberBetween(0, 59));
 
+            $neededStart = $submittedAt->copy()->addDays(fake()->numberBetween(1, 3))->setTime(fake()->numberBetween(7, 16), 0);
+            $neededEnd = $neededStart->copy()->addHours(2);
+
+            // Requests that stay Submitted never reach assign(), so they
+            // carry no staff-conflict risk; only reserve a cursor slot for
+            // stages that will actually be assigned to $assignedStaff.
+            if ($targetStage !== Status::Submitted) {
+                $cursor = $this->staffScheduleCursor[$assignedStaff->id] ?? null;
+                if ($cursor && $neededStart->lt($cursor)) {
+                    $neededStart = $cursor->copy();
+                    $neededEnd = $neededStart->copy()->addHours(2);
+                }
+                $this->staffScheduleCursor[$assignedStaff->id] = $neededEnd->copy()->addMinutes(30);
+            }
+
             Carbon::setTestNow($submittedAt);
             Auth::setUser($requester);
             $request = $workflow->submit([
                 'service_category_id' => $category->id,
                 'location' => $location,
                 'description' => $issue.' at '.$location.'.',
+                'needed_start_at' => $neededStart,
+                'needed_end_at' => $neededEnd,
             ]);
 
             if ($targetStage === Status::Submitted) {

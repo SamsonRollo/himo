@@ -32,7 +32,8 @@ class FacilitiesDemoSeeder extends Seeder
                         'email_verified_at' => now(),
                     ]);
                     if ($user->wasRecentlyCreated) {
-                        $user->assignRole($role);
+                        // Phase 8: every user also holds "requester" by default.
+                        $user->assignRole(array_unique([$role, 'requester']));
                     } elseif (! $user->hasRole($role)) {
                         throw new RuntimeException('A facilities demo email is already in use with a different role; no account was overwritten.');
                     }
@@ -50,10 +51,16 @@ class FacilitiesDemoSeeder extends Seeder
                         continue;
                     }
                     Auth::setUser($actors['requester']);
+                    // Staggered per index: all six requests share the same
+                    // lone demo Service Staff member, so identical windows
+                    // would collide with the assignment conflict check.
+                    $neededStart = now()->addDay()->addHours($index * 3);
                     $request = $workflow->submit([
                         'service_category_id' => $index % 2 === 0 ? $electrical->id : $plumbing->id,
                         'location' => 'Demo room '.($index + 1),
                         'description' => $description,
+                        'needed_start_at' => $neededStart,
+                        'needed_end_at' => $neededStart->copy()->addHours(2),
                     ]);
                     if ($stage === 'submitted') {
                         continue;

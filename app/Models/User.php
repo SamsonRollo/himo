@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\StaffAvailabilityStatus;
 use App\Enums\UserStatus;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -17,6 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password'])]
@@ -26,7 +28,7 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
-    protected $attributes = ['status' => 'active'];
+    protected $attributes = ['status' => 'active', 'staff_status' => 'available'];
 
     /**
      * Get the attributes that should be cast.
@@ -39,6 +41,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'status' => UserStatus::class,
+            'staff_status' => StaffAvailabilityStatus::class,
             'deactivated_at' => 'datetime',
         ];
     }
@@ -86,5 +89,17 @@ class User extends Authenticatable implements FilamentUser
     public function assignedRequests(): HasMany
     {
         return $this->hasMany(ServiceRequest::class, 'assigned_to');
+    }
+
+    /**
+     * Every user also holds "requester" by default (Phase 8), which would
+     * otherwise dominate single-role displays (the topbar, badges) for a
+     * Supervisor/Staff/Super Admin account. Prefer their other, more
+     * specific role for display; fall back to "requester" only when that
+     * really is the only role they hold.
+     */
+    public function primaryRole(): ?Role
+    {
+        return $this->roles->firstWhere('name', '!=', 'requester') ?? $this->roles->first();
     }
 }

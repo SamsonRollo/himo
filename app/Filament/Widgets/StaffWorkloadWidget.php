@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\ServiceRequestStatus as Status;
+use App\Enums\StaffAvailabilityStatus;
 use App\Models\User;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -35,6 +36,10 @@ class StaffWorkloadWidget extends TableWidget
             ->heading('Staff workload')
             ->columns([
                 TextColumn::make('name')->label('Service staff')->sortable(),
+                TextColumn::make('staff_status')->label('Availability')->badge()
+                    ->formatStateUsing(fn (StaffAvailabilityStatus $state) => $state->label())
+                    ->icon(fn (StaffAvailabilityStatus $state) => $state->icon())
+                    ->color(fn (StaffAvailabilityStatus $state) => $state->color()),
                 TextColumn::make('active_count')->label('Active assignments')->sortable(),
                 TextColumn::make('completed_count')->label('Completed')->sortable(),
             ])

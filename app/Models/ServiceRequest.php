@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ServiceRequestPriority;
 use App\Enums\ServiceRequestStatus;
 use App\Models\Concerns\TracksAuthenticatedOwnership;
 use App\Services\ServiceRequestWorkflow;
@@ -18,12 +19,12 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['service_category_id', 'location', 'description'])]
+#[Fillable(['service_category_id', 'location', 'description', 'priority', 'needed_start_at', 'needed_end_at'])]
 class ServiceRequest extends Model
 {
     use HasFactory, SoftDeletes, TracksAuthenticatedOwnership;
 
-    protected $attributes = ['status' => 'submitted'];
+    protected $attributes = ['status' => 'submitted', 'priority' => 'normal'];
 
     public ?string $transitionRemarks = null;
 
@@ -35,7 +36,15 @@ class ServiceRequest extends Model
 
     protected function casts(): array
     {
-        return ['status' => ServiceRequestStatus::class, 'completed_at' => 'datetime'];
+        return [
+            'status' => ServiceRequestStatus::class,
+            'priority' => ServiceRequestPriority::class,
+            'needed_start_at' => 'datetime',
+            'needed_end_at' => 'datetime',
+            'scheduled_start_at' => 'datetime',
+            'scheduled_end_at' => 'datetime',
+            'completed_at' => 'datetime',
+        ];
     }
 
     protected static function booted(): void
@@ -57,6 +66,13 @@ class ServiceRequest extends Model
                 'service_category_id' => ['required', 'exists:service_categories,id'],
                 'location' => ['required', 'string', 'max:150'],
                 'description' => ['required', 'string'],
+                // Only new requests must supply the requested schedule: the
+                // 700 requests seeded before this field existed have none,
+                // and must stay editable through their remaining workflow.
+                'needed_start_at' => [$request->exists ? 'nullable' : 'required', 'date'],
+                'needed_end_at' => [$request->exists ? 'nullable' : 'required', 'date', 'after:needed_start_at'],
+                'scheduled_start_at' => ['nullable', 'date'],
+                'scheduled_end_at' => ['nullable', 'date', 'after:scheduled_start_at'],
             ])->validate();
 
             if ($request->status === ServiceRequestStatus::Completed && (! $request->assigned_to || blank($request->completion_note))) {

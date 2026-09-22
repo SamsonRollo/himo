@@ -1,5 +1,58 @@
 # Edit History
 
+## 2026-09-22 — Priority, scheduling, staff calendar/availability, and default Requester role
+
+### Audit and two decisions confirmed before writing code
+
+Inspected roles/permissions, the User/ServiceRequest/ServiceRequestAssignment schema, the admin panel config, and existing tests before touching anything (this phase's own rule 8: stop and explain conflicts first). Found: no public registration route (the only user-creation paths are the Super-Admin-only `UserResource`, `UserImporter`, and seeders); `UserResource`'s role field was hard-capped to one role (`maxItems(1)`) and `UserImporter::afterSave()` used `syncRoles()` (replaces, not adds) — both a direct conflict with "a user may hold Requester together with another role," fixed as part of this phase; no staff-profile model or scheduling model of any kind; no generic audit-log table (only `ServiceRequestStatusHistory`, which is request-specific); no calendar package installed anywhere.
+
+Two decisions needed explicit confirmation rather than a guess: which calendar approach, and how to record schedule/staff-status history given no generic audit table exists. Asked; user picked `saade/filament-fullcalendar` and a new lightweight audit table. The calendar package turned out not to be installable — `composer require --dry-run` showed its latest release (v3.2.4) caps at `filament/filament ^3.0`, and this repo runs v5.8.4 — so, per the pre-agreed fallback, built the calendar with FullCalendar.js loaded from a CDN inside a custom Filament page instead, no new Composer dependency.
+
+### Service priority
+
+`ServiceRequestPriority` enum (`low`/`normal`/`high`/`urgent`/`critical`), added as a new column with a DB-level default of `normal`, which backfilled the existing 700 seeded requests automatically on migration — no separate backfill step needed. Every display surface (form, infolist, table, filter, calendar event) pairs the priority's color with an icon and the label text itself, since the spec explicitly required not relying on color alone.
+
+### Schedule and the new generic audit table
+
+Added `activity_logs` (`subject_type`/`subject_id` polymorphic morph, `action`, `from_value`/`to_value`, `remarks`, `changed_by`, append-only — mirrors `ServiceRequestStatusHistory`'s shape) per the earlier decision. Added `needed_start_at`/`needed_end_at` (the requester's original ask) and `scheduled_start_at`/`scheduled_end_at` (the final, Supervisor-editable schedule) to `service_requests`. Both pairs are nullable at the DB level — the 700 pre-existing rows have neither, and making them `NOT NULL` without a sensible default would have meant fabricating history data for real (well, demo) records that never had a schedule captured. "Required" is instead enforced at the application layer, and only for *new* records (`$request->exists ? 'nullable' : 'required'`), so the 700 legacy rows stay editable through their remaining workflow without suddenly failing validation.
+
+`ServiceRequestWorkflow::assign()` now resolves the final schedule (an explicit override, falling back to `needed_start_at`/`needed_end_at`), requires a resolved schedule to exist at all, and logs to `activity_logs` only when the resolved schedule actually differs from the requester's original ask — so accepting the default produces no noise in the log.
+
+### Calendar (Phases 4 and 5 built as one)
+
+Rather than building two separate calendar implementations for "Supervisor/Super Admin" and "Service Staff," built one `ServiceCalendar` page whose event query is scoped through the exact same `ServiceRequest::visibleTo()` used everywhere else in the panel — a Service Staff member's calendar is already correctly limited to their own assignments by that scope, with zero new authorization logic. `canAccess()` deliberately does *not* reuse the shared `ViewAny:ServiceRequest` permission, because Requester also holds that (for their own request list) but should not get a calendar at all — a role check was used instead. The Services/Staff view toggle and its filters are hidden entirely for Service Staff (`canManageStaffView()`), who just see their own schedule by default. FullCalendar is registered once, panel-wide, via `Panel::assets()` (`Js::make()`, no `loadedOnRequest()`), traded a small amount of unnecessary load-on-every-page for avoiding `loadedOnRequest()`'s more fragile manual-include pattern in a small internal app. The container uses `wire:ignore` plus a `wire:key` keyed to the active filters, so Livewire never touches FullCalendar's own DOM and a filter change forces a clean destroy/remount instead of a partial diff.
+
+### Conflict detection
+
+The overlap engine (`existing_start < proposed_end AND existing_end > proposed_start`) lives in `ServiceRequestWorkflow`, split into a locked, transaction-safe `checkStaffAvailability()` (used inside `assign()`, re-checked at save time to close the race-condition window the spec asked about) and an unlocked `findScheduleConflict()` for read-only UI checks (disabling/labeling a staff option before the form is even submitted would be pointless to lock for). Only `Completed` is excluded as "terminal" — soft-deleted (cancelled) requests are excluded automatically by Eloquent's own default scope, and an elapsed window falls out of the overlap math for free, with no explicit "is this in the past" branch needed.
+
+Building the 12-case boundary/edge-case test matrix surfaced a real, load-bearing constraint: `ServiceRequestPolicy` only allows cancellation while a request's status is `Submitted`, so "an already-assigned, scheduled request gets cancelled, freeing the staff member's slot" can never actually happen through the app today — assignment and cancellation are mutually exclusive states. The "cancelled releases the schedule" test soft-deletes directly at the DB level (bypassing the policy) specifically to prove the *query's* soft-delete exclusion is correct in isolation, while documenting that the workflow itself can't currently reach that state.
+
+### Staff availability status
+
+`StaffAvailabilityStatus` enum, 8 exact values, added as a new column on `users` (not a separate staff-profile table, since none exists) with a DB default of `available`. `isAssignable()` gates `assign()` outright for the six non-working statuses, independent of and prior to the schedule check — `Available`/`Busy` both still go through the normal overlap check, `Busy` never bypasses it. No automatic status transitions exist anywhere (confirmed and left that way per the spec's own instruction to report the limitation rather than build automation without a reliable trigger); a dedicated test proves completing an assignment does not silently flip a `Busy` staff member back to `Available`. Changes are gated behind a new `Update:StaffStatus` permission, granted to Supervisor/Super Admin only, and logged via `ActivityLog::record()`. The staff member's own status is shown read-only in the topbar identity partial — there is no reachable UI for them to change it themselves, which already satisfies "must not allow Service Staff to change their own status" without extra guard code.
+
+### Default Requester role — a real conflict with an existing test, resolved deliberately
+
+Wiring "every user gets Requester by default" into `UserFactory` itself (so *every* `User::factory()->create()` call anywhere would carry it) would have broken `BoundaryTest::test_create_and_cancel_are_requester_only`, which deliberately constructs a Service Staff/Supervisor user with an *exclusive* role specifically to prove they cannot create a service request — a genuine, existing security-boundary test, not incidental. Resolved by attaching `requester` at the real user-creation surfaces instead: `CreateUser`/`EditUser` pages' `afterCreate()`/`afterSave()` hooks, `UserImporter::afterSave()`, and both demo seeders — plus a new idempotent `app:ensure-default-requester-role` command for the 126 users that already existed, which only attaches the missing role and touches nothing else (no password, no other role, no name). Bare `User::factory()->create()->assignRole(...)` in tests stays exclusive-role by design; this is a deliberate scope boundary, not an oversight, and is called out here so it doesn't get "fixed" into a regression later.
+
+Since every user can now hold `requester` alongside a functional role, a `roles->first()` lookup would non-deterministically show "Requester" instead of someone's actual role. Added `User::primaryRole()` (prefers the first non-`requester` role, falls back to `requester` only when that's genuinely all they have) and used it in both the topbar identity partial and the Users table's role column, which now shows only the functional role to avoid every single row displaying a redundant "Requester" badge.
+
+While wiring this, found that `UserResource`'s role `Select` combined `->relationship('roles', 'name')` (which validates submitted values as the related role's *id*) with a custom `->options()` override that returned `name => name` pairs instead of `id => name` — so submitting the form always failed relationship validation with "the selected role is invalid." This is a pre-existing bug, never caught before because no test exercised `CreateUser`/`EditUser` through Livewire until this phase's tests did. Fixed by deleting the redundant override; `relationship()` already derives correct `id => name` options on its own.
+
+### Verification
+
+- Full PHPUnit suite: 88 tests, 469 assertions passed (all pre-existing tests still green, plus 7 new files).
+- Pint passed for all affected PHP files.
+- All 4 new migrations applied additively (`migrate --force`) against the real Postgres dev database — never `:fresh`, per this phase's explicit data-preservation rule. Verified the 700 existing requests and 126 existing users were untouched throughout.
+- `HimoDemoDataSeeder` re-verified end-to-end against an isolated in-memory SQLite connection (the same isolation `FacilitiesTestCase` uses) after the schedule/conflict changes, specifically so the real dev database was never put at risk just to check the seeder still works — it does, with the new per-staff scheduling cursor added to keep the 700 generated requests from tripping the new conflict check against each other.
+- `npm run build` passed.
+- Column-by-column audit of every active seeder against the live schema (`php artisan db:table`) confirmed no stray or missing field references; the two disconnected legacy seeders (`DemoUserSeeder`, `ShieldRoleSeeder`, referencing roles that don't exist in this app) were flagged again as still present but inert, pending a decision on whether to delete them.
+
+### Known limitation
+
+The dev database's pre-existing 700 requests and 20 staff were never re-seeded, so they carry the new columns' defaults (`priority: normal`, `staff_status: available`, no schedule) rather than realistic variety — only records created after this phase show it. Fixing that requires either an authorized full reseed or a separate additive backfill script; neither was run without an explicit go-ahead.
+
 ## 2026-09-22 — Demo dataset, role-aware dashboards, and branding
 
 ### Bugs found while establishing a clean test baseline

@@ -12,6 +12,7 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -41,6 +42,12 @@ class AdminPanelProvider extends PanelProvider
                 // Gold, approximating Pantone 1235C: used sparingly for
                 // attention indicators, never as a primary or status color.
                 'gold' => Color::hex('#FFC72C'),
+            ])
+            // No calendar package in this repo (saade/filament-fullcalendar
+            // doesn't support Filament v5 yet); FullCalendar.js loaded from
+            // a CDN instead, consumed by ServiceCalendar's Alpine component.
+            ->assets([
+                Js::make('fullcalendar', 'https://cdn.jsdelivr.net/npm/fullcalendar@6/index.global.min.js'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

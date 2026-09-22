@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased — Priority, scheduling, staff calendar/availability, and default Requester role
+
+### Added
+
+- Service request `priority` (`low`/`normal`/`high`/`urgent`/`critical`, default `normal`), shown as icon+text badges (never color alone) in forms, tables, filters, and the calendar.
+- Requester-supplied `needed_start_at`/`needed_end_at` schedule (required on new requests, end must be after start) and a Supervisor-editable `scheduled_start_at`/`scheduled_end_at` final schedule, defaulting to the requester's window and overridable at assignment.
+- `activity_logs`: a new append-only, polymorphic audit table (mirrors `service_request_status_histories`'s shape) used for schedule overrides and staff-availability changes — the only two changes in this phase with no existing dedicated history table.
+- `ServiceCalendar` page (day/week/month via FullCalendar.js, loaded from a CDN — no Filament-v5-compatible calendar package exists yet): full visibility + Services/Staff toggle + staff/category/priority/status filters for Supervisor/Super Admin; own-schedule-only for Service Staff, via the existing `visibleTo()` scope.
+- Staff assignment conflict detection (`existing_start < proposed_end AND existing_end > proposed_start`), enforced inside `assign()`'s row-locked transaction; the assign form visibly labels and disables unavailable staff instead of just hiding them.
+- Service Staff availability status (`available`/`busy`/`on_leave`/`official_business`/`in_training`/`out_of_office`/`absent`/`inactive`, default `available`), gating assignability independently of the schedule check, editable only by Supervisor/Super Admin, visible read-only to the staff member.
+- `requester` is now the default role for every user, on every creation path (admin form, CSV import, seeders) plus an idempotent `app:ensure-default-requester-role` backfill command for existing accounts.
+- 7 new test files covering all of the above, including a 12-case boundary/edge-case matrix for assignment conflicts.
+
+### Changed
+
+- Service Supervisor gained read-only access to the user listing plus a narrow "set staff availability" action — explicitly not `Create`/`Update`/`Delete:User`.
+
+### Fixed
+
+- `UserResource`'s role field combined `relationship()` (expects role IDs) with a custom `options()` override (returned role names) — every user create/edit through the admin UI was silently broken. Never caught before because no test exercised that form; now fixed and covered.
+
+### Verification
+
+- Full PHPUnit suite: 88 tests, 469 assertions passed.
+- Pint passed for all affected PHP files.
+- All 4 new migrations applied additively (`migrate --force`, never `:fresh`) against the real dev database — the existing 700 requests and 126 users were preserved throughout.
+- Vite production build passed.
+- Confirmed column-by-column against the live schema that every active seeder (`FacilitiesRoleSeeder`, `HimoDemoDataSeeder`, `FacilitiesDemoSeeder`) writes only real columns.
+
+### Known limitation
+
+- The dev database's existing 700 requests / 20 staff were never re-seeded (data-preservation rule), so they don't show priority/schedule/availability variety — only newly created records do. Two unused, disconnected seeders (`DemoUserSeeder`, `ShieldRoleSeeder`) still reference roles (`custodian`, `approver`) that don't exist in this app; left in place pending a decision to delete them.
+
 ## Unreleased — Demo dataset, role-aware dashboards, and branding
 
 ### Added
