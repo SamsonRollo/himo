@@ -7,7 +7,7 @@
 #   adminer   http://localhost:8080
 #   vite      http://localhost:5173      (HMR, used automatically by the app)
 #
-# Sign in with admin@example.com / password.
+# Sign in with super.admin@himo.test / password.
 
 x-app: &app
   build:

@@ -3,7 +3,7 @@
 # Hack Sims — one-file Docker setup installer.
 #
 # Writes the whole containerised stack (.docker/, docker-compose.yml, env keys,
-# Vite config, Shield seeders) into a Laravel project, then brings it up. After
+# Vite config, and the existing application's seeders) into a Laravel project, then brings it up. After
 # it finishes there is nothing left to configure: open the panel and log in.
 #
 #   ./install.sh              write everything, then `docker compose up -d --build`
@@ -284,11 +284,11 @@ php artisan migrate --force
 
 # ---------------------------------------------------------- roles and access
 # shield:generate must run before the seeder: it creates the permission rows
-# that ShieldRoleSeeder then hands to super_admin.
+# that the facilities-role seeder assigns to the HIMO roles.
 log "Generating Shield permissions and policies"
 php artisan shield:generate --all --panel=admin --no-interaction
 
-log "Seeding roles and demo users"
+log "Seeding HIMO roles and demonstration data"
 php artisan db:seed --force
 
 log "Linking public storage"
@@ -318,10 +318,10 @@ chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
 log "Setup complete — sign in at ${APP_URL:-http://localhost}/admin"
-printf '    admin@example.com     / %s   (super_admin)\n' "${DEMO_USER_PASSWORD:-password}"
-printf '    requester@example.com / %s   (requester)\n' "${DEMO_USER_PASSWORD:-password}"
-printf '    custodian@example.com / %s   (custodian)\n' "${DEMO_USER_PASSWORD:-password}"
-printf '    approver@example.com  / %s   (approver)\n\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    super.admin@himo.test / %s   (super_admin)\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    supervisor1@himo.test / %s   (service_supervisor)\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    staff1@himo.test      / %s   (service_staff)\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    requester1@himo.test  / %s   (requester)\n\n' "${DEMO_USER_PASSWORD:-password}"
 EOF_SETUP
 
 write .docker/php/php.ini <<'EOF_PHPINI'
@@ -492,7 +492,7 @@ write docker-compose.yml <<'EOF_COMPOSE'
 #   adminer   http://localhost:8080
 #   vite      http://localhost:5173      (HMR, used automatically by the app)
 #
-# Sign in with admin@example.com / password.
+# Sign in with super.admin@himo.test / password.
 
 x-app: &app
   build:
@@ -736,29 +736,29 @@ class DemoUserSeeder extends Seeder
 }
 EOF_USERSEEDER
 
-if keep database/seeders/DatabaseSeeder.php 'ShieldRoleSeeder'; then
-    SKIPPED+=("database/seeders/DatabaseSeeder.php — already calls ShieldRoleSeeder")
+if keep database/seeders/DatabaseSeeder.php 'FacilitiesRoleSeeder'; then
+    SKIPPED+=("database/seeders/DatabaseSeeder.php — already calls FacilitiesRoleSeeder")
 else
     write database/seeders/DatabaseSeeder.php <<'EOF_DBSEEDER'
 <?php
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
+     *
+     * Model events must remain enabled because the HIMO demo data exercises
+     * ownership, workflow, completion, and status-history rules.
      */
     public function run(): void
     {
         $this->call([
-            ShieldRoleSeeder::class,
-            DemoUserSeeder::class,
+            FacilitiesRoleSeeder::class,
+            HimoDemoDataSeeder::class,
         ]);
     }
 }
@@ -1033,6 +1033,6 @@ docker compose up -d --build
 
 echo
 say "Ready"
-note "Panel    http://localhost/admin    admin@example.com / password"
+note "Panel    http://localhost/admin    super.admin@himo.test / password"
 note "Adminer  http://localhost:8080"
 note "Logs     docker compose logs -f setup"

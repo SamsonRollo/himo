@@ -101,11 +101,11 @@ php artisan migrate --force
 
 # ---------------------------------------------------------- roles and access
 # shield:generate must run before the seeder: it creates the permission rows
-# that ShieldRoleSeeder then hands to super_admin.
+# that the facilities-role seeder assigns to the HIMO roles.
 log "Generating Shield permissions and policies"
 php artisan shield:generate --all --panel=admin --no-interaction
 
-log "Seeding roles and demo users"
+log "Seeding HIMO roles and demonstration data"
 php artisan db:seed --force
 
 log "Linking public storage"
@@ -135,7 +135,7 @@ chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
 log "Setup complete — sign in at ${APP_URL:-http://localhost}/admin"
-printf '    admin@example.com     / %s   (super_admin)\n' "${DEMO_USER_PASSWORD:-password}"
-printf '    requester@example.com / %s   (requester)\n' "${DEMO_USER_PASSWORD:-password}"
-printf '    custodian@example.com / %s   (custodian)\n' "${DEMO_USER_PASSWORD:-password}"
-printf '    approver@example.com  / %s   (approver)\n\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    super.admin@himo.test / %s   (super_admin)\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    supervisor1@himo.test / %s   (service_supervisor)\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    staff1@himo.test      / %s   (service_staff)\n' "${DEMO_USER_PASSWORD:-password}"
+printf '    requester1@himo.test  / %s   (requester)\n\n' "${DEMO_USER_PASSWORD:-password}"

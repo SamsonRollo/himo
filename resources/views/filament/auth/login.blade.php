@@ -1,3 +1,4 @@
+<x-filament-panels::page.simple :heading="''" :subheading="''">
 <style>
     .himo-login-brand {
         display: flex;
@@ -39,8 +40,6 @@
     }
 </style>
 
-<div class="fi-simple-page">
-    <div class="fi-simple-page-content">
     <header class="fi-simple-header">
         <div class="himo-login-brand">
             <img
@@ -67,5 +66,4 @@
     </header>
 
     {{ $this->content }}
-    </div>
-</div>
+</x-filament-panels::page.simple>
