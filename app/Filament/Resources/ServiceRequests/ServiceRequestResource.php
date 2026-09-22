@@ -89,7 +89,14 @@ class ServiceRequestResource extends Resource
             TextColumn::make('location')->searchable(),
             TextColumn::make('description')->limit(45)->searchable()->toggleable(),
             TextColumn::make('priority')->formatStateUsing(fn (Priority $state) => $state->label())
-                ->badge()->icon(fn (Priority $state) => $state->icon())->color(fn (Priority $state) => $state->color())->sortable(),
+                ->badge()->icon(fn (Priority $state) => $state->icon())->color(fn (Priority $state) => $state->color())
+                ->sortable(query: fn (Builder $query, string $direction) => $query->orderByRaw(
+                    'CASE priority '
+                    .collect(Priority::cases())
+                        ->map(fn (Priority $priority) => "WHEN '{$priority->value}' THEN {$priority->sortRank()}")
+                        ->implode(' ')
+                    .' END '.($direction === 'desc' ? 'desc' : 'asc')
+                )),
             TextColumn::make('status')->formatStateUsing(fn (Status $state) => $state->label())->badge()->color(fn (Status $state) => $state->color())->sortable(),
             TextColumn::make('creator.name')->label('Requester'),
             TextColumn::make('assignedStaff.name')->label('Assigned staff')->placeholder('Unassigned'),

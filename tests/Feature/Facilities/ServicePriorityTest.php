@@ -69,4 +69,30 @@ class ServicePriorityTest extends FacilitiesTestCase
             ->assertCanSeeTableRecords([$urgent])
             ->assertCanNotSeeTableRecords([$low]);
     }
+
+    /**
+     * Priority is stored as a string enum whose alphabetical order
+     * ('critical', 'high', 'low', 'normal', 'urgent') does not match its
+     * severity. Sorting must rank by severity instead: Critical on top,
+     * Low at the bottom (and the reverse when toggled to descending).
+     */
+    public function test_sorting_by_priority_ranks_by_severity_not_alphabetically(): void
+    {
+        $requester = User::factory()->create()->assignRole('requester');
+        $this->actingAs($requester);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $category = ServiceCategory::factory()->create();
+
+        $low = ServiceRequest::factory()->create(['service_category_id' => $category->id, 'priority' => 'low']);
+        $critical = ServiceRequest::factory()->create(['service_category_id' => $category->id, 'priority' => 'critical']);
+        $normal = ServiceRequest::factory()->create(['service_category_id' => $category->id, 'priority' => 'normal']);
+        $urgent = ServiceRequest::factory()->create(['service_category_id' => $category->id, 'priority' => 'urgent']);
+        $high = ServiceRequest::factory()->create(['service_category_id' => $category->id, 'priority' => 'high']);
+
+        Livewire::test(ListServiceRequests::class)
+            ->sortTable('priority')
+            ->assertCanSeeTableRecords([$critical, $urgent, $high, $normal, $low], inOrder: true)
+            ->sortTable('priority', 'desc')
+            ->assertCanSeeTableRecords([$low, $normal, $high, $urgent, $critical], inOrder: true);
+    }
 }
