@@ -1,5 +1,35 @@
 # Edit History
 
+## 2026-09-22 — Demo dataset, role-aware dashboards, and branding
+
+### Bugs found while establishing a clean test baseline
+
+Before writing the new seeder, ran the existing, untouched test suite to establish a baseline and found it already red on `main`. `ServiceRequestAssignment::create()` — called by `ServiceRequestWorkflow::assign()`, the "Supervisor assigns" step of the required workflow — threw `MassAssignmentException`, because the model declares `$guarded = ['*']` (blocks all mass assignment) while being written via `::create()`. Fixed by writing through `forceFill()->save()` instead, the same pattern the sibling `ServiceRequestStatusHistory` audit model already uses, rather than loosening the guard. Separately, `User::canAccessPanel()` was rejecting freshly created accounts: `status` has a DB-level default of `'active'`, but Eloquent doesn't hydrate DB-level defaults back into a just-created in-memory model, so `$user->status` stayed `null` until the record was reloaded — added `protected $attributes = ['status' => 'active']`, the same in-memory-default pattern `ServiceRequest` already uses for its own `status` column. A parallel bug (`SystemBackup`/`SystemRestore`, also fully guarded but created via `::create()`) made backup/restore entirely non-functional; fixed by relaxing the guard on those two internal, service-populated-only models instead, since an existing test exercises `::create()` on them directly and locks in that contract.
+
+### Demo dataset
+
+`HimoDemoDataSeeder` seeds 5 categories, 5 supervisors (one nominally responsible per category, for seeding realism only — the app has no supervisor/category ownership concept and none was added), 20 staff (4 per category), 100 requesters, 1 Super Admin, and 700 requests. Every request is produced by calling the real `ServiceRequestWorkflow` methods, never a raw insert, with `Carbon::setTestNow()` walking fake "now" forward through each request's lifecycle so `created_at`/`assigned_at`/`completed_at` stay chronologically consistent and the completion business rule is exercised for real on every record. Status distribution is fixed at 21/21/28/14/56 per category (15/15/20/10/40%), generation is deterministic (`mt_srand`/`fake()->seed()` with a fixed seed), and the seeder is idempotent — guarded by a fixed Super Admin email so a rerun against a non-empty database is a no-op.
+
+`DatabaseSeeder` now calls this plus `FacilitiesRoleSeeder` instead of a stale `ShieldRoleSeeder`/`DemoUserSeeder` pair whose roles (`custodian`, `approver`) don't exist anywhere else in this app — apparent leftovers from a different case-study scaffold. Also removed `WithoutModelEvents` from `DatabaseSeeder`: it silently disabled the `creating`/`saving`/`saved` hooks that set `created_by`, validate the completion rule, and write status history, which would have broken every request this seeder creates.
+
+### Role-aware dashboards
+
+Six new widgets — `RequestStatusOverview` (full status breakdown plus average resolution time, computed in PHP rather than a driver-specific SQL date-diff function so it works identically on Postgres, MySQL, and the SQLite test connection), `CategoryVolumeChart`, `RequestTrendChart`, `StaffWorkloadWidget`, `RecentRequestsWidget`, `RecentlyCompletedWidget` — gated behind new `View:*` permissions granted to `service_supervisor` and inherited by `super_admin`. All of them reuse the existing `ServiceRequest::visibleTo()` scope rather than adding new authorization logic: the codebase already treats Service Supervisor as seeing every request, not one scoped to a category or office (confirmed by the existing, already-passing `AuthorizationTest`), and the case-study spec defines no per-category supervisor-ownership concept either — building a new supervisor↔category relationship to scope the dashboard further would have meant inventing a field the spec and code don't support. Removed `AccountWidget`/`FilamentInfoWidget` (the default "Welcome to <app>" card and Filament's own branding links) from the panel's `widgets()`.
+
+### Branding, navigation, and identity
+
+Logos moved from the repo root into `public/images/branding/` (byte-identical; dimensions verified unchanged: 1777×1644 and 1944×809). Panel colors wired through Filament's existing `->colors()` API: `primary` → UP Maroon `#7B1113`, `success` → Forest Green `#014421`, and a new `gold` (`#FFC72C`, approximating Pantone 1235C) used once, on the dashboard's "Unassigned" stat, since the brief asked for a sparing accent rather than a status color. `danger`/`warning`/`info` were left at Filament's defaults so error/warning states stay visually distinct from the maroon primary. Five navigation groups (Service Requests, Service Management, Users & Access, Reports & Monitoring, System Administration) added via `navigationGroups()`, with an icon and group assigned to every resource/page this repo controls; Filament Shield's own Roles page has no config hook for this without extending its vendor resource, so it keeps its default icon and sits outside the named groups. `sidebarCollapsibleOnDesktop()` enabled — Filament's standard icon-rail collapse, no custom JS. A `USER_MENU_BEFORE` render hook shows the authenticated user's name and a humanized role label (e.g. "Service Supervisor", never the raw `service_supervisor` slug) to the left of the profile avatar.
+
+A UP+HIMO dual-logo lockup was added to the nav via `brandLogo()`, sized once against Filament's `--topbar-height: 4rem`, then resized larger on request. The user then reported it still crowds the nav after a hard refresh. Root-caused that OPcache (`revalidate_freq=0`) and Blade's view cache both pick up file changes on every request in this stack, so the report isn't a stale-cache issue — the layout itself needs rework or removal. Not yet resolved as of this entry; the code still has `brandLogo()`/`brandLogoHeight()` wired in `AdminPanelProvider`.
+
+### Verification
+
+- Full PHPUnit suite: 39 tests, 297 assertions passed (35 pre-existing, including the 2 fixed above, plus 4 new in `DashboardScopeTest`).
+- Pint passed for all affected PHP files.
+- `php artisan migrate:fresh --seed` against the real Postgres dev database (not just the SQLite test connection): completed in ~55s, produced exactly 126 users / 5 categories / 700 requests in the target distribution, zero business-rule or date-consistency violations; rerun is a no-op.
+- `npm run build` passed.
+- No connected browser in this session: the sidebar collapse animation and on-screen logo/identity layout were verified by reading the installed Filament CSS/Blade source rather than visually, which is how the still-open logo-sizing complaint above was missed initially.
+
 ## 2026-09-22 — Facilities RBAC audit, user management, and backup/restore
 
 ### Audit finding and fix

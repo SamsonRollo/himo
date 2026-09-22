@@ -26,6 +26,8 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable, SoftDeletes;
 
+    protected $attributes = ['status' => 'active'];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -74,5 +76,15 @@ class User extends Authenticatable implements FilamentUser
     public function assignmentHistory(): HasMany
     {
         return $this->hasMany(ServiceRequestAssignment::class, 'staff_id')->orderByDesc('assigned_at');
+    }
+
+    /**
+     * Inverse of ServiceRequest::assignedStaff(): the requests currently
+     * carrying this user's id in assigned_to (not the full reassignment
+     * history — see assignmentHistory() for that).
+     */
+    public function assignedRequests(): HasMany
+    {
+        return $this->hasMany(ServiceRequest::class, 'assigned_to');
     }
 }

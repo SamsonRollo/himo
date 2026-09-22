@@ -2,21 +2,22 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
+     *
+     * Model events must stay enabled here: ServiceCategory/ServiceRequest
+     * rely on them for created_by tracking, status-history writes, and the
+     * completion business rule, all of which HimoDemoDataSeeder exercises.
      */
     public function run(): void
     {
         $this->call([
-            ShieldRoleSeeder::class,
-            DemoUserSeeder::class,
+            FacilitiesRoleSeeder::class,
+            HimoDemoDataSeeder::class,
         ]);
     }
 }

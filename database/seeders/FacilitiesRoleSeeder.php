@@ -15,10 +15,16 @@ class FacilitiesRoleSeeder extends Seeder
         // Requester and Service Staff must never see or reach that resource.
         $common = ['ViewAny:ServiceRequest', 'View:ServiceRequest', 'View:ServiceAccomplishmentReport', 'View:ServiceRequestMetrics'];
         $categoryManagement = ['ViewAny:ServiceCategory', 'View:ServiceCategory', 'Create:ServiceCategory', 'Update:ServiceCategory', 'Delete:ServiceCategory'];
+        // Supervisor/Super Admin operational dashboard widgets only; a
+        // requester or staff member never sees institution-wide metrics.
+        $dashboardWidgets = [
+            'View:RequestStatusOverview', 'View:CategoryVolumeChart', 'View:RequestTrendChart',
+            'View:StaffWorkloadWidget', 'View:RecentRequestsWidget', 'View:RecentlyCompletedWidget',
+        ];
         $roles = [
             'requester' => [...$common, 'Create:ServiceRequest', 'Update:ServiceRequest', 'Delete:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
             'service_staff' => [...$common, 'Work:ServiceRequest'],
-            'service_supervisor' => [...$common, ...$categoryManagement, 'Assign:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
+            'service_supervisor' => [...$common, ...$categoryManagement, ...$dashboardWidgets, 'Assign:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
         ];
         // Reserved for Super Admin alone: never merged into a domain role.
         $superAdminOnly = [

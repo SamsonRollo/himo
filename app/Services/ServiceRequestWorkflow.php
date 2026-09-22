@@ -46,12 +46,12 @@ class ServiceRequestWorkflow
             }
             $locked->assigned_to = $staffId;
             $locked->status = Status::Assigned;
-            ServiceRequestAssignment::create([
+            (new ServiceRequestAssignment)->forceFill([
                 'service_request_id' => $locked->id,
                 'staff_id' => $staffId,
                 'assigned_by' => auth()->id(),
                 'assigned_at' => now(),
-            ]);
+            ])->save();
         });
     }
 

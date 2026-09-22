@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 
 class ServiceRequestAssignment extends Model
 {
-    public const UPDATED_AT = null;
+    public $timestamps = false;
 
     protected $guarded = ['*'];
 

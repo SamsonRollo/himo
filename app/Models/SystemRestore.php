@@ -10,7 +10,7 @@ class SystemRestore extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $guarded = ['*'];
+    protected $guarded = [];
 
     protected function casts(): array
     {
