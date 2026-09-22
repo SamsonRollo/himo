@@ -3,6 +3,7 @@
 declare(strict_types=1);
 use App\Filament\Resources\ServiceCategories\ServiceCategoryResource;
 use App\Filament\Resources\ServiceRequests\ServiceRequestResource;
+use App\Filament\Resources\Users\UserResource;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
 use Filament\Widgets\AccountWidget;
@@ -201,6 +202,7 @@ return [
             // FacilitiesRoleSeeder manages these resources' permissions.
             ServiceCategoryResource::class,
             ServiceRequestResource::class,
+            UserResource::class,
         ],
     ],
 
@@ -272,6 +274,12 @@ return [
         'Work:ServiceRequest' => 'Perform assigned service work',
         'Complete:ServiceRequest' => 'Confirm service completion',
         'Return:ServiceRequest' => 'Return service work for correction',
+        'ViewAny:User' => 'List user accounts',
+        'View:User' => 'View user accounts',
+        'Create:User' => 'Create user accounts',
+        'Update:User' => 'Update user accounts',
+        'Delete:User' => 'Deactivate/reactivate user accounts',
+        'Manage:SystemBackup' => 'Create, download, and restore server-side backups',
     ],
 
     /*

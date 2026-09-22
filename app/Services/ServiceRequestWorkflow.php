@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Enums\ServiceRequestStatus as Status;
+use App\Enums\UserStatus;
 use App\Models\ServiceCategory;
 use App\Models\ServiceRequest;
+use App\Models\ServiceRequestAssignment;
 use App\Models\User;
 use Closure;
 use Illuminate\Support\Facades\DB;
@@ -39,11 +41,17 @@ class ServiceRequestWorkflow
     public function assign(ServiceRequest $request, int $staffId): ServiceRequest
     {
         return $this->change($request, 'assign', function (ServiceRequest $locked) use ($staffId): void {
-            if (! User::role('service_staff')->whereKey($staffId)->exists()) {
-                throw ValidationException::withMessages(['assigned_to' => 'Select a Service Staff member.']);
+            if (! User::role('service_staff')->where('status', UserStatus::Active)->whereKey($staffId)->exists()) {
+                throw ValidationException::withMessages(['assigned_to' => 'Select an active Service Staff member.']);
             }
             $locked->assigned_to = $staffId;
             $locked->status = Status::Assigned;
+            ServiceRequestAssignment::create([
+                'service_request_id' => $locked->id,
+                'staff_id' => $staffId,
+                'assigned_by' => auth()->id(),
+                'assigned_at' => now(),
+            ]);
         });
     }
 

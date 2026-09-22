@@ -62,3 +62,14 @@ docker compose ps
 ```
 
 See [the four implemented diagrams](diagrams.md). PDCA and optional/bonus deliverables are excluded pending separate approval.
+
+## RBAC, user management, and backup/restore checklist
+
+These were written without access to a live database or Docker in the implementing sandbox (see `edit_history.md`) and must be exercised manually here before being trusted.
+
+1. **Service Categories are invisible to Requester/Service Staff.** Sign in as `facilities-requester@example.test` and `facilities-service_staff@example.test`; confirm neither sees "Service Categories" in the nav, and that `GET /admin/service-categories` returns 403 for both.
+2. **Cancel request.** As a Requester, submit a request, then use "Cancel request" on it while Submitted; confirm it disappears from the list (soft-deleted) and that the action is absent once the request is Assigned.
+3. **Task history tabs.** As Service Staff, open Service Requests; confirm "Active"/"History" tabs, with completed assignments only under History.
+4. **User management.** As `admin@example.com`: create a user, deactivate them (confirm they can no longer log in but their past requests still display their name), reactivate them. Confirm a non-super-admin gets 403 on `/admin/users`.
+5. **CSV export/import.** Export users to CSV from the Users list. Re-import it with "Update existing accounts" checked and confirm no duplicates are created; try a row with `role=super_admin` and confirm it's rejected.
+6. **Backup and restore — do this against disposable/demo data only.** From "Backups" (Super Admin), click "Create backup now" and confirm a row appears with a nonzero size. Download it. Click "Restore", confirm typing the wrong filename is rejected, then confirm restoring with the correct filename succeeds and the app is briefly in maintenance mode during the operation. Confirm a `SystemRestore` audit row was written either way.

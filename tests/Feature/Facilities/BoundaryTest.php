@@ -5,6 +5,7 @@ namespace Tests\Feature\Facilities;
 use App\Enums\ServiceRequestStatus as Status;
 use App\Filament\Resources\ServiceCategories\Pages\CreateServiceCategory;
 use App\Filament\Resources\ServiceCategories\Pages\EditServiceCategory;
+use App\Filament\Resources\ServiceRequests\Pages\ListServiceRequests;
 use App\Filament\Resources\ServiceRequests\Pages\ViewServiceRequest;
 use App\Models\ServiceCategory;
 use App\Models\ServiceRequest;
@@ -160,6 +161,36 @@ class BoundaryTest extends FacilitiesTestCase
         Livewire::test(EditRole::class, ['record' => $role->id])
             ->call('save')->assertHasNoFormErrors();
         $this->assertSame($before, $role->fresh()->permissions->pluck('name')->sort()->values()->all());
+    }
+
+    /**
+     * Requester-only workflow isolation (case study requirement 2): only a
+     * requester (or admin) may create requests, and the "Cancel request"
+     * action is available solely to the owner while Submitted.
+     */
+    public function test_create_and_cancel_are_requester_only(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $owner = User::factory()->create()->assignRole('requester');
+        $staff = User::factory()->create()->assignRole('service_staff');
+        $supervisor = User::factory()->create()->assignRole('service_supervisor');
+
+        foreach ([$staff, $supervisor] as $nonRequester) {
+            $this->assertFalse(Gate::forUser($nonRequester)->allows('create', ServiceRequest::class));
+        }
+        $this->assertTrue(Gate::forUser($owner)->allows('create', ServiceRequest::class));
+
+        $this->actingAs($owner);
+        $request = ServiceRequest::factory()->create();
+
+        foreach ([$staff, $supervisor] as $nonOwner) {
+            $this->assertFalse(Gate::forUser($nonOwner)->allows('delete', $request));
+        }
+        $this->assertTrue(Gate::forUser($owner)->allows('delete', $request));
+
+        Livewire::test(ListServiceRequests::class)
+            ->callTableAction('cancel', $request)->assertHasNoTableActionErrors();
+        $this->assertTrue($request->fresh()->trashed());
     }
 
     public function test_demo_requester_can_log_in_using_the_existing_filament_login(): void

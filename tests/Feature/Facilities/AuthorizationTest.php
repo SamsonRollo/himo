@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Facilities;
 
+use App\Filament\Resources\ServiceCategories\ServiceCategoryResource;
 use App\Models\ServiceCategory;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use App\Services\ServiceRequestWorkflow;
 use Database\Seeders\FacilitiesRoleSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\Models\Role;
 
@@ -47,6 +49,26 @@ class AuthorizationTest extends FacilitiesTestCase
         foreach (['requester' => false, 'service_staff' => false, 'service_supervisor' => true, 'super_admin' => true] as $role => $allowed) {
             $user = User::factory()->create()->assignRole($role);
             $this->assertSame($allowed, Gate::forUser($user)->allows('create', ServiceCategory::class));
+        }
+    }
+
+    /**
+     * Requester and Service Staff must never see or reach Service Categories
+     * (case study requirement 1) — only Service Supervisor and Super Admin may.
+     */
+    public function test_service_categories_are_invisible_and_unreachable_for_requester_and_staff(): void
+    {
+        $this->seed(FacilitiesRoleSeeder::class);
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+        foreach (['requester' => false, 'service_staff' => false, 'service_supervisor' => true, 'super_admin' => true] as $role => $canView) {
+            $user = User::factory()->create()->assignRole($role);
+            $this->assertSame($canView, $user->can('ViewAny:ServiceCategory'), "role={$role}");
+
+            $this->actingAs($user);
+            $this->assertSame($canView, ServiceCategoryResource::canViewAny(), "role={$role} canViewAny");
+            $response = $this->get(ServiceCategoryResource::getUrl('index'));
+            $response->assertStatus($canView ? 200 : 403);
         }
     }
 }

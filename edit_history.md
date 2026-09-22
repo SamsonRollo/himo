@@ -1,5 +1,33 @@
 # Edit History
 
+## 2026-09-22 — Facilities RBAC audit, user management, and backup/restore
+
+### Audit finding and fix
+
+Audited every role (Requester, Service Staff, Service Supervisor, Super Admin) against every Facilities view/route/action and against `09_facilities_service_requests_balanced.md`. Found one gap: `FacilitiesRoleSeeder`'s shared `$common` permission set granted `ViewAny:ServiceCategory`/`View:ServiceCategory` to Requester and Service Staff, letting them browse (read-only) a resource meant to be invisible to them. Fixed by moving those permissions into a `service_supervisor`-only set; `super_admin` is unaffected since it already holds every permission explicitly. The full cross-reference is in `docs/facilities/rbac-audit.md`.
+
+### Requester UI isolation
+
+Relabeled the generic Service Request "Delete" action to "Cancel request" (`ServiceRequestResource::cancelAction()`), same underlying authorization (`ServiceRequestPolicy::delete`: owner, Submitted only, or admin). No new "Reopen from Completed" transition was added — confirmed with the requester that Completed should stay terminal, preserving the already-judged completion business rule; the existing Return-for-correction and Cancel paths serve the equivalent alternate-path role.
+
+### Service Staff task history
+
+Added an append-only `service_request_assignments` log (`ServiceRequestAssignment` model), written by `ServiceRequestWorkflow::assign()` in the same transaction as the status change, so a staff member's task history doesn't depend solely on the current, mutable `assigned_to` column. `ServiceRequest::scopeVisibleTo()` now also matches staff via this log. `ListServiceRequests` gained Active/History tabs (Filament's `getTabs()`), splitting by completion status.
+
+### Super Admin user management
+
+Added `status`/`deactivated_at`/`deactivated_by` plus `softDeletes()` to `users` (migration `2026_09_22_080100_...`). `User::booted()` blocks `forceDelete()` outright — hard deletion is never possible, matching the existing `TracksAuthenticatedOwnership` pattern used by `ServiceCategory`/`ServiceRequest`. The actual non-destructive "delete" the case study asks for is a status toggle: `UserResource`'s record action deactivates/reactivates (`status` + `deactivated_at`/`deactivated_by`), never calling Eloquent's real delete, so `created_by`/`assigned_to` and all history stay intact. `canAccessPanel()` now also requires an active status. `UserPolicy` restricts all of this to `super_admin`, and additionally blocks self-deactivation and reducing active `super_admin` accounts to zero.
+
+CSV import/export uses Filament's built-in `filament/actions` Importer/Exporter (already vendored, no new Composer dependency — only its three migrations needed copying into `database/migrations`, matching how the package expects to be installed). `UserImporter` matches existing accounts by email (create vs. update, controlled by an "update existing" checkbox), restricts the role column to the three domain roles, and explicitly rejects any row naming an existing `super_admin` account or the `super_admin` role, closing a CSV-based privilege-escalation path. Imported accounts get a random unusable password pending a normal password reset, since CSVs never carry credentials.
+
+### Server-side backup and restore
+
+`BackupService` shells out to `pg_dump`/`pg_restore` (already installed in `.docker/php/Dockerfile` for `pg_isready`, so no image change was needed) rather than adding a backup package. Backups are written to the existing private `local` disk (`storage/app/private/backups`, never web-served) with a sha256 checksum recorded alongside. Restore re-verifies that checksum before touching anything, runs `pg_restore --clean --single-transaction` so the whole restore commits or rolls back atomically, and wraps the window in `artisan down`/`up`. Both actions always write an audit row (`SystemBackup`/`SystemRestore`), including on failure. The `SystemBackups` Filament page requires typing the exact backup filename to confirm a restore, on top of the standard confirmation dialog. Gated behind a new `Manage:SystemBackup` permission held only by `super_admin`.
+
+### Verification and a known environment gap
+
+This phase's sandbox had no PDO driver at all (`php -m` showed neither `pdo_sqlite` nor `pdo_pgsql`) and no Docker/socket access, so nothing that touches a database could be run or exercised here — no `migrate`, no PHPUnit, no live click-through. Every change was written to match this repo's existing tested patterns exactly (soft-delete/ownership guard, transactional workflow writes, Filament policy-driven authorization, append-only audit models) and `php -l` was run on every new/changed file. **The user must run `docker compose exec -T php php artisan migrate --force` and the full PHPUnit suite in their existing stack before trusting this**, especially the backup/restore flow, which was deliberately left out of the automated suite (a real `pg_dump`/`pg_restore` round trip risks `pg_restore --clean` wiping a real shared dev database if run automatically) and instead needs a manual click-through per `docs/facilities/demo.md`.
+
 ## 2026-09-22 — Facilities and Service Request Management MVP
 
 ### Data foundation

@@ -11,15 +11,23 @@ class FacilitiesRoleSeeder extends Seeder
 {
     public function run(): void
     {
-        $common = ['ViewAny:ServiceCategory', 'View:ServiceCategory', 'ViewAny:ServiceRequest', 'View:ServiceRequest', 'View:ServiceAccomplishmentReport', 'View:ServiceRequestMetrics'];
+        // Service Category permissions are deliberately excluded from $common:
+        // Requester and Service Staff must never see or reach that resource.
+        $common = ['ViewAny:ServiceRequest', 'View:ServiceRequest', 'View:ServiceAccomplishmentReport', 'View:ServiceRequestMetrics'];
+        $categoryManagement = ['ViewAny:ServiceCategory', 'View:ServiceCategory', 'Create:ServiceCategory', 'Update:ServiceCategory', 'Delete:ServiceCategory'];
         $roles = [
             'requester' => [...$common, 'Create:ServiceRequest', 'Update:ServiceRequest', 'Delete:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
             'service_staff' => [...$common, 'Work:ServiceRequest'],
-            'service_supervisor' => [...$common, 'Create:ServiceCategory', 'Update:ServiceCategory', 'Delete:ServiceCategory', 'Assign:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
+            'service_supervisor' => [...$common, ...$categoryManagement, 'Assign:ServiceRequest', 'Complete:ServiceRequest', 'Return:ServiceRequest'],
+        ];
+        // Reserved for Super Admin alone: never merged into a domain role.
+        $superAdminOnly = [
+            'ViewAny:User', 'View:User', 'Create:User', 'Update:User', 'Delete:User',
+            'Manage:SystemBackup',
         ];
         $guard = config('auth.defaults.guard', 'web');
 
-        foreach (array_unique(array_merge(...array_values($roles))) as $permission) {
+        foreach (array_unique([...array_merge(...array_values($roles)), ...$superAdminOnly]) as $permission) {
             Permission::findOrCreate($permission, $guard);
         }
 
@@ -29,7 +37,7 @@ class FacilitiesRoleSeeder extends Seeder
         }
 
         Role::findOrCreate(config('filament-shield.super_admin.name'), $guard)
-            ->givePermissionTo(array_unique(array_merge(...array_values($roles))));
+            ->givePermissionTo(array_unique([...array_merge(...array_values($roles)), ...$superAdminOnly]));
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }

@@ -8,7 +8,6 @@ use App\Models\ServiceRequest;
 use App\Models\User;
 use App\Services\ServiceRequestWorkflow;
 use Filament\Actions\Action;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Select;
@@ -87,7 +86,20 @@ class ServiceRequestResource extends Resource
     {
         return $table->columns(static::requestColumns())->filters(static::requestFilters())
             ->defaultSort('created_at', 'desc')
-            ->recordActions([ViewAction::make(), EditAction::make(), ...static::workflowActions(), DeleteAction::make()]);
+            ->recordActions([ViewAction::make(), EditAction::make(), ...static::workflowActions(), static::cancelAction()]);
+    }
+
+    /**
+     * Requester-only: withdraw a request that has not yet been actioned.
+     * Soft-deletes under the hood (ServiceRequestPolicy::delete), surfaced
+     * with the requester-facing "Cancel request" language from the spec
+     * rather than a generic "Delete".
+     */
+    public static function cancelAction(): Action
+    {
+        return Action::make('cancel')->label('Cancel request')->color('danger')
+            ->icon('heroicon-o-x-circle')->authorize('delete')->requiresConfirmation()
+            ->action(fn (ServiceRequest $record) => $record->delete());
     }
 
     public static function workflowActions(): array
@@ -96,7 +108,7 @@ class ServiceRequestResource extends Resource
             Action::make('assign')->label('Assign')->authorize('assign')
                 ->schema([
                     Select::make('assigned_to')->label('Service Staff')->required()->searchable()
-                        ->options(fn () => User::role('service_staff')->orderBy('name')->pluck('name', 'id')),
+                        ->options(fn () => User::role('service_staff')->active()->orderBy('name')->pluck('name', 'id')),
                 ])->action(fn (ServiceRequest $record, array $data) => app(ServiceRequestWorkflow::class)->assign($record, (int) $data['assigned_to'])),
             Action::make('start')->label('Start work')->authorize('start')->requiresConfirmation()
                 ->action(fn (ServiceRequest $record) => app(ServiceRequestWorkflow::class)->start($record)),

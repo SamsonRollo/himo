@@ -103,7 +103,11 @@ class ServiceRequest extends Model
                 $query->orWhere('created_by', $user->id);
             }
             if ($user->hasRole('service_staff')) {
-                $query->orWhere('assigned_to', $user->id);
+                // Current assignment, plus anything the assignment log shows
+                // was ever assigned to this staff member, so a task stays
+                // visible in their history even after a future reassignment.
+                $query->orWhere('assigned_to', $user->id)
+                    ->orWhereHas('assignments', fn (Builder $assignments) => $assignments->where('staff_id', $user->id));
             }
         });
     }
@@ -116,5 +120,10 @@ class ServiceRequest extends Model
     public function statusHistories(): HasMany
     {
         return $this->hasMany(ServiceRequestStatusHistory::class)->orderBy('id');
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(ServiceRequestAssignment::class)->orderBy('assigned_at');
     }
 }

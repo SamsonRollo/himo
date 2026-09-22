@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — Facilities RBAC audit, user management, and backup/restore
+
+### Added
+
+- Service Category visibility and management strictly limited to Service Supervisor and Super Admin (previously leaked read access to Requester and Service Staff).
+- Requester-facing "Cancel request" action (relabeled from the generic delete, same authorization).
+- Append-only Service Request assignment log, independent of the mutable `assigned_to` column, plus Active/History tabs on the Service Requests list.
+- Super Admin user management: create/edit, non-destructive deactivate/reactivate (hard deletes are blocked outright), and CSV import/export via Filament's built-in importer/exporter.
+- Server-side database backup and restore (Super Admin only), backed by `pg_dump`/`pg_restore`, stored privately on the server, with checksum verification, a typed-filename confirmation, a maintenance-mode window during restore, and a full audit trail for both actions.
+- `docs/facilities/rbac-audit.md`: full role × action cross-reference against the case study spec.
+
+### Changed
+
+- `users` table gains `status`/`deactivated_at`/`deactivated_by` and soft deletes; `User::canAccessPanel()` now also requires an active status.
+- Staff-assignment dropdowns and `ServiceRequestWorkflow::assign()` now only offer/accept active Service Staff.
+
 ## Unreleased — Facilities and Service Request Management MVP
 
 ### Added
