@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased — Request IDs and dashboard presentation
+
+### Changed
+
+- New Service Requests, including all requests created through the active workflow-based demo seeders, now receive IDs in `UPT-SRYYYYMMDDXXXX` format. The suffix is four uppercase random alphanumeric characters and is checked against active and soft-deleted request records before use.
+- Dashboard stat cards now use a bottom border matching their state: maroon for open/confirmation, blue for assigned, amber for in-progress, green for completed, gold for unassigned, and gray for neutral totals.
+- Dashboard charts and tables occupy one full row each. Charts use a `27rem` maximum height; dashboard tables use the same cap and scroll inside their data area when needed.
+- The Request Trend widget is now titled **Requests** and displays Volume, Assigned, Unassigned, In progress, and Completed series.
+
+### Fixed
+
+- Removed the overlapping `RequestStatusOverview` widget from automatic dashboard discovery, leaving the required four Service Request metrics without duplicate cards.
+- Corrected the dashboard table scroll structure: control headers remain above the scroll area and opaque table headings stick inside the rows-only scroll container, preventing row content from overlapping column labels.
+- Service Request Active/History tabs share the table-toolbar row with search controls on desktop while retaining the responsive wrapped layout on smaller screens.
+
+### Verification
+
+- Targeted Data Foundation, Interface, Dashboard Scope, Task History, and Reporting tests passed during the related changes.
+- Pint, `php artisan optimize:clear`, `npm run build`, and `git diff --check` passed.
+- No browser session was available for visual or console verification.
+
 ## Unreleased — Priority, scheduling, staff calendar/availability, and default Requester role
 
 ### Added

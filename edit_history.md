@@ -1,5 +1,39 @@
 # Edit History
 
+## 2026-09-22 — Request identifiers and dashboard/table presentation
+
+### Request-number format
+
+`ServiceRequest` now generates `UPT-SRYYYYMMDDXXXX` on creation, replacing the prior `SR-` plus ULID format. `YYYYMMDD` comes from the application clock and `XXXX` is an uppercase `Str::random(4)` suffix, so every generated identifier is exactly 18 characters. The generator checks `withTrashed()` before assigning a value, preserving the unique identifier contract even after a request has been soft-deleted. The existing `request_no` column is a 50-character unique string, so no migration was needed and existing request numbers were deliberately preserved.
+
+All active demonstration seeders create requests through `ServiceRequestWorkflow` and the model creation event; they therefore receive the new format without raw request-number values or seeder-specific branches. `DataFoundationTest` now verifies the exact `^UPT-SR\\d{8}[A-Z0-9]{4}$` pattern.
+
+### Dashboard widgets
+
+The dashboard contained both `ServiceRequestMetrics` (the required Open/Assigned/In-progress/Completed cards) and `RequestStatusOverview` (a broader, overlapping breakdown). Both widgets were discovered automatically, which produced redundant stat cards. `RequestStatusOverview::$isDiscovered` is now false, so the required metrics remain on the dashboard while the broader component remains available to tests or future deliberate registration.
+
+Each visible stat card receives a semantic `himo-stat-bottom-border-*` class: neutral totals are gray; unassigned is gold; assigned is blue; active/open states use maroon or amber as appropriate; completed is green. The classes are defined once in the existing panel style partial, not in Filament vendor assets.
+
+`CategoryVolumeChart` and `RequestTrendChart` now use a full column span and a `27rem` maximum height. `RequestTrendChart` is headed **Requests** and uses one grouped query over the previous 30 days, split into five aligned series: Volume, Assigned, Unassigned (Submitted), In progress, and Completed. The three dashboard `TableWidget`s also use a full column span and a `27rem` cap.
+
+### Dashboard table scrolling and sticky headings
+
+The original custom cap put `overflow: auto` on `.fi-ta-main`. Installed Filament markup shows that `.fi-ta-header-ctn` and `.fi-ta-content-ctn` are siblings inside that element, so the title/control header and table body shared the same scroll container. A guessed `top: 3.5rem` on sticky `<th>` cells then allowed rows to occupy the header area.
+
+The corrected scoped rules apply only to dashboard tables carrying `himo-dashboard-table-height-marker`, emitted through Filament's `TABLE_WIDGET_START` render hook. `.fi-ta-main` is a bounded flex column; `.fi-ta-header-ctn` remains in normal flow; `.fi-ta-content-ctn` alone scrolls; and only semantic table `<th>` cells are sticky at `top: 0` inside that content container. The `<thead>` and every `<th>` have forced opaque light/dark backgrounds and a stacking context. No table elements were converted to flex/grid, no negative margins or offsets were added, and application/resource tables remain outside these selectors.
+
+### Service Request list placement
+
+The existing Livewire Active/History tab component remains the single source of the list filter state. It is wrapped only on `ListServiceRequests`, and its table header shares a desktop flex row with Filament's native toolbar/search controls. The page's normal ListRecords tab placement is omitted to avoid duplicate tablists; the page keeps Filament's responsive stacked behavior below the desktop breakpoint.
+
+### Verification
+
+- `tests/Feature/Facilities/DataFoundationTest.php` and `InterfaceTest.php`: 5 tests, 47 assertions passed after the request-number update.
+- `tests/Feature/Facilities/DashboardScopeTest.php`: final targeted run passed, 4 tests and 65 assertions; prior dashboard/reporting run passed 5 tests and 89 assertions.
+- Targeted Task History and Interface tests passed during the list-tab placement change.
+- Pint passed for each modified PHP/test group; `php artisan optimize:clear`, `npm run build`, and `git diff --check` passed after the final UI updates.
+- No browser session was available, so computed styles, visual overlap, responsive rendering, and browser-console state were not directly verified.
+
 ## 2026-09-22 — Priority, scheduling, staff calendar/availability, and default Requester role
 
 ### Audit and two decisions confirmed before writing code
