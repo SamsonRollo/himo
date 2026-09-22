@@ -23,7 +23,7 @@ class DataFoundationTest extends FacilitiesTestCase
         $this->assertSame($creator->id, $request->creator->id);
         $this->assertSame($category->id, $request->category->id);
         $this->assertSame(ServiceRequestStatus::Submitted, $request->status);
-        $this->assertStringStartsWith('SR-', $request->request_no);
+        $this->assertMatchesRegularExpression('/^UPT-SR\d{8}[A-Z0-9]{4}$/', $request->request_no);
 
         $this->actingAs($other);
         $category->update(['description' => 'Updated']);

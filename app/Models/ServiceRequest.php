@@ -52,7 +52,7 @@ class ServiceRequest extends Model
         static::deleting(fn (self $request) => Gate::authorize('delete', $request));
 
         static::creating(function (self $request): void {
-            $request->request_no = 'SR-'.Str::ulid();
+            $request->request_no = self::generateRequestNumber();
         });
 
         static::saving(function (self $request): void {
@@ -141,5 +141,14 @@ class ServiceRequest extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(ServiceRequestAssignment::class)->orderBy('assigned_at');
+    }
+
+    private static function generateRequestNumber(): string
+    {
+        do {
+            $requestNumber = 'UPT-SR'.now()->format('Ymd').Str::upper(Str::random(4));
+        } while (self::withTrashed()->where('request_no', $requestNumber)->exists());
+
+        return $requestNumber;
     }
 }
