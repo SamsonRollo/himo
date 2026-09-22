@@ -21,8 +21,17 @@ class BrandingTest extends TestCase
             ->assertSee('height: 1.25rem;', false);
     }
 
-    public function test_authenticated_brand_partials_preserve_the_exact_topbar_spacing(): void
+    public function test_authenticated_branding_uses_a_horizontal_logo_row_with_a_fifteen_pixel_up_logo_margin(): void
     {
+        $this->view('filament.partials.brand-logo')
+            ->assertSeeInOrder([
+                'alt="University of the Philippines seal"',
+                'alt="HIMO — Helpdesk Intake, Management, and Job Orders"',
+            ], false)
+            ->assertSee('margin-left: 15px;', false)
+            ->assertSee('class="himo-brand-row"', false)
+            ->assertSee('height: 100%; width: auto; object-fit: contain;', false);
+
         $this->view('filament.partials.topbar-brand-logo')
             ->assertSeeInOrder([
                 'alt="University of the Philippines seal"',
@@ -33,7 +42,19 @@ class BrandingTest extends TestCase
             ->assertSee('height: 100%; width: auto; object-fit: contain;', false);
 
         $this->view('filament.partials.topbar-brand-styles')
-            ->assertSee('padding-inline-start: 5px !important;', false)
-            ->assertSee('display: none;', false);
+            ->assertSee('padding-inline-start: 0 !important;', false)
+            ->assertSee('flex-direction: row !important;', false)
+            ->assertSee('flex-wrap: nowrap !important;', false)
+            ->assertSee('.fi-topbar-collapse-sidebar-btn-ctn,', false)
+            ->assertSee('.fi-topbar-end .fi-global-search-ctn', false);
+    }
+
+    public function test_sidebar_toggle_reuses_filaments_sidebar_store_with_a_menu_icon(): void
+    {
+        $this->view('filament.partials.sidebar-collapse-control')
+            ->assertSee('<svg', false)
+            ->assertSee('aria-label="Toggle sidebar"', false)
+            ->assertSee('title="Toggle sidebar"', false)
+            ->assertSee('$store.sidebar.isOpen ? $store.sidebar.close() : $store.sidebar.open()', false);
     }
 }

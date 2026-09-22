@@ -76,6 +76,10 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('filament.partials.topbar-brand-logo'),
             )
             ->renderHook(
+                PanelsRenderHook::SIDEBAR_NAV_START,
+                fn () => view('filament.partials.sidebar-collapse-control'),
+            )
+            ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn () => view('filament.partials.user-identity'),
             )

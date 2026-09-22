@@ -58,7 +58,7 @@ class StaffAvailabilityTest extends FacilitiesTestCase
         }
     }
 
-    public function test_own_availability_status_is_visible_to_the_staff_member_read_only(): void
+    public function test_user_identity_shows_the_staff_members_human_readable_role(): void
     {
         $staff = User::factory()->create()->assignRole('service_staff');
         $staff->forceFill(['staff_status' => Availability::Busy])->save();
@@ -66,7 +66,22 @@ class StaffAvailabilityTest extends FacilitiesTestCase
 
         $html = view('filament.partials.user-identity')->render();
 
-        $this->assertStringContainsString('Busy', $html);
+        $this->assertStringContainsString('Service Staff', $html);
+        $this->assertStringNotContainsString('Busy', $html);
+        $this->assertStringContainsString('himo-user-identity', $html);
+        $this->assertStringContainsString('himo-user-name', $html);
+        $this->assertStringContainsString('himo-user-role', $html);
+    }
+
+    public function test_user_identity_uses_the_super_administrator_role_label(): void
+    {
+        $superAdmin = User::factory()->create(['name' => 'Actual Account Name'])->assignRole('super_admin');
+        $this->actingAs($superAdmin);
+
+        $html = view('filament.partials.user-identity')->render();
+
+        $this->assertStringContainsString('Actual Account Name', $html);
+        $this->assertStringContainsString('Super Administrator', $html);
     }
 
     public function test_status_gated_staff_cannot_be_assigned_regardless_of_schedule(): void
