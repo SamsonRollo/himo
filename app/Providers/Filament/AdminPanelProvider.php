@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Pages\Login;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -28,10 +29,10 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
             ->brandName('HIMO')
             ->brandLogo(fn () => view('filament.partials.brand-logo'))
-            ->brandLogoHeight('2rem')
+            ->brandLogoHeight('calc(var(--topbar-height) - 10px)')
             ->colors([
                 // UP Maroon: primary actions, active navigation, emphasis.
                 'primary' => Color::hex('#7B1113'),
@@ -59,6 +60,14 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('System Administration'),
             ])
             ->sidebarCollapsibleOnDesktop()
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => view('filament.partials.topbar-brand-styles'),
+            )
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_START,
+                fn () => view('filament.partials.topbar-brand-logo'),
+            )
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn () => view('filament.partials.user-identity'),

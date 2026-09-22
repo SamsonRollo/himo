@@ -1,5 +1,8 @@
-{{-- Shared authenticated brand mark for the Filament topbar and sidebar header. --}}
-<div class="flex min-w-0 items-center" style="height: 100%; gap: 5px; margin: 0; padding: 0;">
+<div
+    aria-label="University of the Philippines and HIMO"
+    class="flex shrink-0 items-center"
+    style="height: calc(var(--topbar-height) - 10px); gap: 5px; margin: 0; padding: 0;"
+>
     <img
         src="{{ asset('images/branding/up-logo.png') }}"
         alt="University of the Philippines seal"
