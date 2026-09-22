@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+use App\Filament\Resources\ServiceCategories\ServiceCategoryResource;
+use App\Filament\Resources\ServiceRequests\ServiceRequestResource;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
 use Filament\Widgets\AccountWidget;
@@ -27,7 +29,7 @@ return [
             'pages' => true,
             'widgets' => true,
             'resources' => true,
-            'custom_permissions' => false,
+            'custom_permissions' => true,
         ],
     ],
 
@@ -195,7 +197,10 @@ return [
             ],
         ],
         'exclude' => [
-            //
+            // Preserve domain policies during the existing Docker generation step.
+            // FacilitiesRoleSeeder manages these resources' permissions.
+            ServiceCategoryResource::class,
+            ServiceRequestResource::class,
         ],
     ],
 
@@ -252,7 +257,22 @@ return [
     |
     */
 
-    'custom_permissions' => [],
+    'custom_permissions' => [
+        'ViewAny:ServiceCategory' => 'List service categories',
+        'View:ServiceCategory' => 'View service categories',
+        'Create:ServiceCategory' => 'Create service categories',
+        'Update:ServiceCategory' => 'Update service categories',
+        'Delete:ServiceCategory' => 'Delete service categories',
+        'ViewAny:ServiceRequest' => 'List visible service requests',
+        'View:ServiceRequest' => 'View visible service requests',
+        'Create:ServiceRequest' => 'Submit service requests',
+        'Update:ServiceRequest' => 'Edit own submitted service requests',
+        'Delete:ServiceRequest' => 'Delete own submitted service requests',
+        'Assign:ServiceRequest' => 'Assign service requests',
+        'Work:ServiceRequest' => 'Perform assigned service work',
+        'Complete:ServiceRequest' => 'Confirm service completion',
+        'Return:ServiceRequest' => 'Return service work for correction',
+    ],
 
     /*
     |--------------------------------------------------------------------------
