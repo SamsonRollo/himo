@@ -44,6 +44,32 @@
         display: none;
     }
 
+    /* ListServiceRequests adds this wrapper around its existing Livewire tabs.
+       On desktop, place that header beside Filament's native search toolbar. */
+    @media (min-width: 40rem) {
+        .fi-ta-header-ctn:has(.himo-service-request-tabs) {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid color-mix(in oklab, var(--gray-200) 100%, transparent);
+        }
+
+        .dark .fi-ta-header-ctn:has(.himo-service-request-tabs) {
+            border-bottom-color: color-mix(in oklab, var(--color-white) 10%, transparent);
+        }
+
+        .fi-ta-header-ctn:has(.himo-service-request-tabs) > .fi-ta-header {
+            flex: 1 1 0;
+            justify-content: flex-end;
+            padding: 0 0 0 1.5rem;
+            border-bottom: 0;
+        }
+
+        .fi-ta-header-ctn:has(.himo-service-request-tabs) > .fi-ta-header-toolbar {
+            flex: 1 1 0;
+            border-bottom: 0;
+        }
+    }
+
     @media (min-width: 40rem) {
         .himo-user-identity {
             display: flex !important;

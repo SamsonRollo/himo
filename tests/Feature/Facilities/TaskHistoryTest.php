@@ -70,7 +70,7 @@ class TaskHistoryTest extends FacilitiesTestCase
         $list->assertCanSeeTableRecords([$completed])->assertCanNotSeeTableRecords([$active]);
     }
 
-    public function test_resource_tabs_render_once_inside_the_service_request_table_header(): void
+    public function test_resource_tabs_share_the_table_toolbar_row_with_search_controls(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs(User::factory()->create()->assignRole('requester'));
@@ -79,12 +79,18 @@ class TaskHistoryTest extends FacilitiesTestCase
 
         $tableMainPosition = strpos($html, 'fi-ta-main');
         $tableHeaderPosition = strpos($html, 'fi-ta-header-ctn');
+        $tabsWrapperPosition = strpos($html, 'himo-service-request-tabs');
+        $toolbarPosition = strpos($html, 'fi-ta-header-toolbar');
         $tabsPosition = strpos($html, 'fi-sc-tabs');
 
         $this->assertNotFalse($tableMainPosition);
         $this->assertNotFalse($tableHeaderPosition);
+        $this->assertNotFalse($tabsWrapperPosition);
+        $this->assertNotFalse($toolbarPosition);
         $this->assertNotFalse($tabsPosition);
-        $this->assertLessThan($tabsPosition, $tableHeaderPosition);
+        $this->assertLessThan($tabsWrapperPosition, $tableHeaderPosition);
+        $this->assertLessThan($toolbarPosition, $tabsWrapperPosition);
+        $this->assertLessThan($tabsPosition, $tabsWrapperPosition);
         $this->assertLessThan($tableHeaderPosition, $tableMainPosition);
     }
 }

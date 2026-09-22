@@ -25,16 +25,17 @@ class ListServiceRequests extends ListRecords
     }
 
     /**
-     * Render the resource tabs inside this table's native header. The tabs
-     * retain Filament's existing livewireProperty binding to activeTab.
+     * Render the resource tabs in a page-specific table-header wrapper. The
+     * wrapper shares Filament's header row with the table toolbar on desktop,
+     * while the tabs retain their existing livewireProperty binding.
      */
     public function table(Table $table): Table
     {
         return parent::table($table)->header(
             fn (): HtmlString => new HtmlString(
-                Schema::make($this)
+                '<div class="himo-service-request-tabs">'.Schema::make($this)
                     ->components([$this->getTabsContentComponent()])
-                    ->toEmbeddedHtml(),
+                    ->toEmbeddedHtml().'</div>',
             ),
         );
     }
