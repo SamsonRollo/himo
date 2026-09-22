@@ -44,6 +44,62 @@
         display: none;
     }
 
+    .himo-stat-bottom-border {
+        border-bottom-width: 4px;
+        border-bottom-style: solid;
+    }
+
+    .himo-stat-bottom-border-gray { border-bottom-color: var(--gray-400); }
+    .himo-stat-bottom-border-gold { border-bottom-color: #FFC72C; }
+    .himo-stat-bottom-border-primary { border-bottom-color: #7B1113; }
+    .himo-stat-bottom-border-info { border-bottom-color: #0EA5E9; }
+    .himo-stat-bottom-border-warning { border-bottom-color: #F59E0B; }
+    .himo-stat-bottom-border-success { border-bottom-color: #014421; }
+
+    .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-ctn {
+        max-height: 27rem;
+        overflow: hidden;
+    }
+
+    .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-main {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        max-height: 27rem;
+        overflow: hidden;
+    }
+
+    .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-header-ctn {
+        flex: none;
+    }
+
+    .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-content-ctn {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+    }
+
+    .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-table > thead {
+        z-index: 9;
+        background-color: var(--gray-50) !important;
+        opacity: 1;
+    }
+
+    .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-table > thead > tr > th {
+        position: sticky;
+        top: 0;
+        z-index: 9;
+        background-color: var(--gray-50) !important;
+        background-clip: padding-box;
+        opacity: 1;
+    }
+
+    .dark .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-table > thead,
+    .dark .fi-wi-table:has(.himo-dashboard-table-height-marker) .fi-ta-table > thead > tr > th {
+        background-color: var(--gray-900) !important;
+    }
+
     /* ListServiceRequests adds this wrapper around its existing Livewire tabs.
        On desktop, place that header beside Filament's native search toolbar. */
     @media (min-width: 40rem) {

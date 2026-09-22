@@ -17,6 +17,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
  */
 class RequestStatusOverview extends StatsOverviewWidget
 {
+    protected static bool $isDiscovered = false;
+
     protected static ?int $sort = 1;
 
     public static function canView(): bool
@@ -58,15 +60,15 @@ class RequestStatusOverview extends StatsOverviewWidget
         $stats = static::counts(auth()->user());
 
         return [
-            Stat::make('Total requests', $stats['total']),
+            Stat::make('Total requests', $stats['total'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-gray']),
             // Gold draws the eye to the one bucket that needs action: a
             // submitted request nobody has picked up yet.
-            Stat::make('Unassigned (Submitted)', $stats['submitted'])->color('gold'),
-            Stat::make('Assigned', $stats['assigned']),
-            Stat::make('In progress', $stats['in_progress']),
-            Stat::make('For confirmation', $stats['for_confirmation']),
-            Stat::make('Completed', $stats['completed']),
-            Stat::make('Avg. resolution time', $stats['average_resolution_days'] !== null ? number_format($stats['average_resolution_days'], 1).' days' : 'No completed requests yet'),
+            Stat::make('Unassigned (Submitted)', $stats['submitted'])->color('gold')->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-gold']),
+            Stat::make('Assigned', $stats['assigned'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-info']),
+            Stat::make('In progress', $stats['in_progress'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-warning']),
+            Stat::make('For confirmation', $stats['for_confirmation'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-primary']),
+            Stat::make('Completed', $stats['completed'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-success']),
+            Stat::make('Avg. resolution time', $stats['average_resolution_days'] !== null ? number_format($stats['average_resolution_days'], 1).' days' : 'No completed requests yet')->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-gray']),
         ];
     }
 }

@@ -5,6 +5,9 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\Pages\Login;
 use App\Filament\Pages\ServiceAccomplishmentReport;
 use App\Filament\Resources\ServiceRequests\Pages\ListServiceRequests;
+use App\Filament\Widgets\RecentlyCompletedWidget;
+use App\Filament\Widgets\RecentRequestsWidget;
+use App\Filament\Widgets\StaffWorkloadWidget;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -18,6 +21,7 @@ use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
 use Filament\Tables\View\TablesRenderHook;
 use Filament\View\PanelsRenderHook;
+use Filament\Widgets\View\WidgetsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -90,6 +94,11 @@ class AdminPanelProvider extends PanelProvider
                 TablesRenderHook::TOOLBAR_SEARCH_AFTER,
                 fn () => view('filament.partials.priority-sort-toggle'),
                 scopes: [ListServiceRequests::class, ServiceAccomplishmentReport::class],
+            )
+            ->renderHook(
+                WidgetsRenderHook::TABLE_WIDGET_START,
+                fn () => '<span class="himo-dashboard-table-height-marker" hidden></span>',
+                scopes: [StaffWorkloadWidget::class, RecentRequestsWidget::class, RecentlyCompletedWidget::class],
             )
             ->middleware([
                 EncryptCookies::class,

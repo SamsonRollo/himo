@@ -27,6 +27,8 @@ class DashboardScopeTest extends FacilitiesTestCase
     {
         $widgets = [RequestStatusOverview::class, CategoryVolumeChart::class, RequestTrendChart::class, StaffWorkloadWidget::class, RecentRequestsWidget::class, RecentlyCompletedWidget::class];
 
+        $this->assertFalse(RequestStatusOverview::isDiscovered());
+
         foreach (['requester' => false, 'service_staff' => false, 'service_supervisor' => true, 'super_admin' => true] as $role => $canView) {
             $this->actingAs(User::factory()->create()->assignRole($role));
 
@@ -80,7 +82,21 @@ class DashboardScopeTest extends FacilitiesTestCase
         $this->assertSame($expected, RequestStatusOverview::counts($superAdmin));
 
         $this->actingAs($supervisor);
-        Livewire::test(RequestStatusOverview::class)->assertSee('Total requests')->assertSee('4.0 days');
+        $overview = Livewire::test(RequestStatusOverview::class);
+        $overview->assertSee('Total requests')->assertSee('4.0 days');
+        $this->assertStringContainsString('himo-stat-bottom-border-success', $overview->html());
+        $this->assertStringContainsString('himo-stat-bottom-border-warning', $overview->html());
+
+        $this->assertSame('full', app(CategoryVolumeChart::class)->getColumnSpan());
+        $this->assertSame('full', app(RequestTrendChart::class)->getColumnSpan());
+        $this->assertSame('full', app(StaffWorkloadWidget::class)->getColumnSpan());
+        $this->assertSame('full', app(RecentRequestsWidget::class)->getColumnSpan());
+        $this->assertSame('full', app(RecentlyCompletedWidget::class)->getColumnSpan());
+        $this->assertStringContainsString('max-height: 27rem', Livewire::test(CategoryVolumeChart::class)->html());
+        $trendHtml = Livewire::test(RequestTrendChart::class)->html();
+        foreach (['Volume', 'Assigned', 'Unassigned', 'In progress', 'Completed'] as $dataset) {
+            $this->assertStringContainsString($dataset, $trendHtml);
+        }
 
         $outsider = User::factory()->create()->assignRole('requester');
         $this->assertSame(0, RequestStatusOverview::counts($outsider)['total']);

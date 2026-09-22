@@ -16,6 +16,8 @@ use Filament\Widgets\TableWidget;
  */
 class StaffWorkloadWidget extends TableWidget
 {
+    protected int|string|array $columnSpan = 'full';
+
     protected static ?int $sort = 4;
 
     public static function canView(): bool

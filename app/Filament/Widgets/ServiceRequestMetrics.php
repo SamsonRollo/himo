@@ -31,6 +31,13 @@ class ServiceRequestMetrics extends StatsOverviewWidget
 
     protected function getStats(): array
     {
-        return collect(static::counts(auth()->user()))->map(fn (int $count, string $label) => Stat::make($label, $count))->all();
+        $counts = static::counts(auth()->user());
+
+        return [
+            Stat::make('Open requests', $counts['Open requests'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-primary']),
+            Stat::make('Assigned requests', $counts['Assigned requests'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-info']),
+            Stat::make('In-progress requests', $counts['In-progress requests'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-warning']),
+            Stat::make('Completed requests', $counts['Completed requests'])->extraAttributes(['class' => 'himo-stat-bottom-border himo-stat-bottom-border-success']),
+        ];
     }
 }

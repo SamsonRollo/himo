@@ -10,6 +10,8 @@ use Filament\Widgets\TableWidget;
 
 class RecentlyCompletedWidget extends TableWidget
 {
+    protected int|string|array $columnSpan = 'full';
+
     protected static ?int $sort = 6;
 
     public static function canView(): bool

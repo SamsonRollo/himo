@@ -14,6 +14,10 @@ class CategoryVolumeChart extends ChartWidget
 {
     protected ?string $heading = 'Requests by category';
 
+    protected int|string|array $columnSpan = 'full';
+
+    protected ?string $maxHeight = '27rem';
+
     protected static ?int $sort = 2;
 
     public static function canView(): bool
