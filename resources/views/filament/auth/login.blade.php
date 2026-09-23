@@ -1,6 +1,11 @@
 <x-filament-panels::page.simple :heading="''" :subheading="''">
 <style>
+    .fi-simple-header {
+        container-type: inline-size;
+    }
+
     .himo-login-brand {
+        --himo-login-up-height: min(12rem, calc((100cqw - 0.75rem) / 2.583));
         display: flex;
         flex-direction: row;
         flex-wrap: nowrap;
@@ -20,24 +25,17 @@
     }
 
     .himo-login-brand-up {
-        height: 4rem;
+        height: var(--himo-login-up-height);
     }
 
     .himo-login-brand-himo {
-        height: 2.5rem;
+        height: calc(var(--himo-login-up-height) * 0.625);
     }
 
     @media (min-width: 640px) {
         .himo-login-brand {
+            --himo-login-up-height: min(15rem, calc((100cqw - 0.75rem) / 2.583));
             margin-bottom: 1.25rem;
-        }
-
-        .himo-login-brand-up {
-            height: 5rem;
-        }
-
-        .himo-login-brand-himo {
-            height: 3rem;
         }
     }
 </style>
