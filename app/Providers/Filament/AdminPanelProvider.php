@@ -42,7 +42,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('admin')
+            ->path('')
             ->login(Login::class)
             ->brandName('HIMO')
             ->brandLogo(fn () => view('filament.partials.brand-logo'))

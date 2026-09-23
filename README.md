@@ -51,7 +51,7 @@ docker compose up -d --build
 
 The one-shot `setup` service installs PHP and JavaScript dependencies, creates the application key, runs migrations, seeds development data, and builds Vite assets before the application services start.
 
-Open the application at [http://localhost/admin](http://localhost/admin). The default local Super Admin credentials are:
+Open the application at [http://localhost/login](http://localhost/login). The default local Super Admin credentials are:
 
 ```text
 Email:    super.admin@himo.test

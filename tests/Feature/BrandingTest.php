@@ -8,7 +8,7 @@ class BrandingTest extends TestCase
 {
     public function test_login_page_places_the_two_logo_images_before_the_sign_in_heading(): void
     {
-        $response = $this->get('/admin/login')
+        $response = $this->get('/login')
             ->assertOk()
             ->assertSeeInOrder([
                 'alt="University of the Philippines seal"',

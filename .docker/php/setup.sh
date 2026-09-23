@@ -135,7 +135,7 @@ find storage/framework/views -maxdepth 1 -type f -name '*.php' -delete
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
-log "Setup complete — sign in at ${APP_URL:-http://localhost}/admin"
+log "Setup complete — sign in at ${APP_URL:-http://localhost}/login"
 printf '    super.admin@himo.test / %s   (super_admin)\n' "${DEMO_USER_PASSWORD:-password}"
 printf '    supervisor1@himo.test / %s   (service_supervisor)\n' "${DEMO_USER_PASSWORD:-password}"
 printf '    staff1@himo.test      / %s   (service_staff)\n' "${DEMO_USER_PASSWORD:-password}"

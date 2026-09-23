@@ -329,7 +329,7 @@ find storage/framework/views -maxdepth 1 -type f -name '*.php' -delete
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
-log "Setup complete — sign in at ${APP_URL:-http://localhost}/admin"
+log "Setup complete — sign in at ${APP_URL:-http://localhost}/login"
 printf '    super.admin@himo.test / %s   (super_admin)\n' "${DEMO_USER_PASSWORD:-password}"
 printf '    supervisor1@himo.test / %s   (service_supervisor)\n' "${DEMO_USER_PASSWORD:-password}"
 printf '    staff1@himo.test      / %s   (service_staff)\n' "${DEMO_USER_PASSWORD:-password}"
@@ -500,7 +500,7 @@ write docker-compose.yml <<'EOF_COMPOSE'
 # one-shot `setup` service. php-fpm, nginx and vite only start once that
 # finishes, so the first page you load is already migrated, seeded and built.
 #
-#   app       http://localhost           (Filament panel at /admin)
+#   app       http://localhost           (Filament panel at /; sign-in at /login)
 #   adminer   http://localhost:8080
 #   vite      http://localhost:5173      (HMR, used automatically by the app)
 #
@@ -1051,6 +1051,6 @@ docker compose up -d --build
 
 echo
 say "Ready"
-note "Panel    http://localhost/admin    super.admin@himo.test / password"
+note "Panel    http://localhost/login    super.admin@himo.test / password"
 note "Adminer  http://localhost:8080"
 note "Logs     docker compose logs -f setup"
