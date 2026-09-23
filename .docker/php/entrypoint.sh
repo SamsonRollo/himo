@@ -13,6 +13,10 @@ mkdir -p \
     /var/www/storage/logs \
     /var/www/bootstrap/cache
 
+# The setup container executes some Artisan commands as root. Compiled Blade
+# views from that work can otherwise survive into php-fpm, whose workers run
+# as www-data and cannot refresh a root-owned cache file.
+find /var/www/storage/framework/views -maxdepth 1 -type f -name '*.php' -delete
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
