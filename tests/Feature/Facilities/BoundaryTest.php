@@ -175,10 +175,9 @@ class BoundaryTest extends FacilitiesTestCase
         $staff = User::factory()->create()->assignRole('service_staff');
         $supervisor = User::factory()->create()->assignRole('service_supervisor');
 
-        foreach ([$staff, $supervisor] as $nonRequester) {
-            $this->assertFalse(Gate::forUser($nonRequester)->allows('create', ServiceRequest::class));
+        foreach ([$owner, $staff, $supervisor] as $anyRole) {
+            $this->assertTrue(Gate::forUser($anyRole)->allows('create', ServiceRequest::class));
         }
-        $this->assertTrue(Gate::forUser($owner)->allows('create', ServiceRequest::class));
 
         $this->actingAs($owner);
         $request = ServiceRequest::factory()->create();

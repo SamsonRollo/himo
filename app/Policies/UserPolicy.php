@@ -9,22 +9,37 @@ class UserPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('ViewAny:User');
+        return $this->canListUsers($user);
     }
 
     public function view(User $user, User $subject): bool
     {
-        return $user->can('View:User');
+        return $this->canListUsers($user);
     }
 
     public function create(User $user): bool
     {
-        return $user->can('Create:User');
+        return $this->isSuperAdmin($user);
     }
 
     public function update(User $user, User $subject): bool
     {
-        return $user->can('Update:User');
+        return $this->isSuperAdmin($user);
+    }
+
+    /**
+     * Role-based rather than permission-based: roles are read from the
+     * database, so a stale Spatie permission cache cannot lock a Super
+     * Admin out of user management or open it to other roles.
+     */
+    private function canListUsers(User $user): bool
+    {
+        return $user->hasRole(['service_supervisor', config('filament-shield.super_admin.name')]);
+    }
+
+    private function isSuperAdmin(User $user): bool
+    {
+        return $user->hasRole(config('filament-shield.super_admin.name'));
     }
 
     /**
@@ -34,7 +49,7 @@ class UserPolicy
      */
     public function delete(User $user, User $subject): bool
     {
-        if (! $user->can('Delete:User')) {
+        if (! $this->isSuperAdmin($user)) {
             return false;
         }
 

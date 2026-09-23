@@ -22,6 +22,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 use UnitEnum;
 
@@ -54,10 +55,29 @@ class UserResource extends Resource
             // which made every submission fail relationship()'s own
             // "must be a valid related record" validation.
             Select::make('roles')
-                ->relationship('roles', 'name')
+                ->relationship('roles', 'name', modifyQueryUsing: fn (Builder $query) => $query->whereIn('name', static::assignableRoles()))
+                // Every user also holds "requester", so loading all their
+                // roles would exceed maxItems(1) and block every edit; show
+                // only the functional role. EditUser::afterSave() re-adds
+                // "requester" after the sync.
+                ->loadStateFromRelationshipsUsing(fn (Select $component, ?User $record) => $component->state(
+                    $record?->primaryRole() ? [(string) $record->primaryRole()->getKey()] : [],
+                ))
                 ->multiple()->maxItems(1)->required()->preload()->searchable()
                 ->label('Role'),
         ]);
+    }
+
+    /**
+     * Roles this app actually grants permissions to. Excludes leftovers such
+     * as panel_user and the unrelated custodian/approver roles, which carry
+     * no permissions and would land a user on an empty panel.
+     *
+     * @return list<string>
+     */
+    public static function assignableRoles(): array
+    {
+        return ['requester', 'service_staff', 'service_supervisor', config('filament-shield.super_admin.name')];
     }
 
     public static function table(Table $table): Table
@@ -82,7 +102,7 @@ class UserResource extends Resource
                 ->color(fn (User $record, StaffAvailabilityStatus $state) => $record->hasRole('service_staff') ? $state->color() : 'gray'),
             TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
         ])->filters([
-            SelectFilter::make('roles')->relationship('roles', 'name'),
+            SelectFilter::make('roles')->relationship('roles', 'name', modifyQueryUsing: fn (Builder $query) => $query->whereIn('name', static::assignableRoles())),
             SelectFilter::make('status')->options(['active' => 'Active', 'inactive' => 'Inactive']),
             SelectFilter::make('staff_status')->label('Availability')->options(StaffAvailabilityStatus::options()),
         ])->recordActions([
@@ -149,9 +169,9 @@ class UserResource extends Resource
     {
         return [
             ImportAction::make()->importer(UserImporter::class)->modalWidth(Width::Large)
-                ->authorize(fn () => auth()->user()?->can('Create:User') ?? false),
+                ->authorize(fn () => auth()->user()?->can('create', User::class) ?? false),
             ExportAction::make()->exporter(UserExporter::class)
-                ->authorize(fn () => auth()->user()?->can('Create:User') ?? false),
+                ->authorize(fn () => auth()->user()?->can('create', User::class) ?? false),
         ];
     }
 

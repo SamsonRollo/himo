@@ -21,7 +21,7 @@ class ServiceRequestPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('Create:ServiceRequest') && $user->hasRole(['requester', config('filament-shield.super_admin.name')]);
+        return $user->hasRole(['requester', 'service_staff', 'service_supervisor', config('filament-shield.super_admin.name')]);
     }
 
     public function update(User $user, ServiceRequest $request): bool

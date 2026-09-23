@@ -52,6 +52,24 @@ class DefaultRequesterRoleTest extends FacilitiesTestCase
         $this->assertTrue($staff->hasRole('requester'));
     }
 
+    public function test_super_admin_can_change_the_role_of_a_user_who_also_holds_requester(): void
+    {
+        $admin = User::factory()->create()->assignRole(['super_admin', 'requester']);
+        $staff = User::factory()->create()->assignRole(['service_staff', 'requester']);
+        $this->actingAs($admin);
+        $supervisorRoleId = Role::where('name', 'service_supervisor')->value('id');
+
+        Livewire::test(EditUser::class, ['record' => $staff->getRouteKey()])
+            ->assertFormSet(['roles' => [(string) Role::where('name', 'service_staff')->value('id')]])
+            ->fillForm(['roles' => [$supervisorRoleId]])
+            ->call('save')->assertHasNoFormErrors();
+
+        $staff = $staff->fresh();
+        $this->assertTrue($staff->hasRole('service_supervisor'));
+        $this->assertFalse($staff->hasRole('service_staff'));
+        $this->assertTrue($staff->hasRole('requester'));
+    }
+
     public function test_csv_import_also_assigns_requester(): void
     {
         $admin = User::factory()->create()->assignRole('super_admin');
