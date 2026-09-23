@@ -1,5 +1,9 @@
 # HIMO — Facilities Service Request Management
 
+![HIMO logo](public/images/branding/himo-logo.png)
+
+**HIMO** comes from the Waray word meaning “do” or “make.” It reflects the institution’s commitment to turning service requests into action. As the need for digital processing grows, HIMO provides a central place to submit, track, and manage requests, helping offices respond more efficiently and keeping requesters informed from submission to completion.
+
 HIMO is a Laravel and Filament application for managing facilities and maintenance requests from intake through completion. It replaces informal messages and calls with a controlled workflow for submitting, assigning, tracking, reviewing, and closing service work.
 
 ## What the application provides
