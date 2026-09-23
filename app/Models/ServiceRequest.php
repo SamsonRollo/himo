@@ -115,7 +115,11 @@ class ServiceRequest extends Model
 
         return $query->where(function (Builder $query) use ($user): void {
             $query->whereRaw('1 = 0');
-            if ($user->hasRole('requester')) {
+            // Every user also holds "requester" by default (Phase 8), but a
+            // Service Staff member's own filed requests must stay out of
+            // their queue until assigned to them — otherwise an unassigned
+            // request they filed themselves would leak into their work list.
+            if ($user->hasRole('requester') && ! $user->hasRole('service_staff')) {
                 $query->orWhere('created_by', $user->id);
             }
             if ($user->hasRole('service_staff')) {

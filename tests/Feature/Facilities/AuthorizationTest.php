@@ -43,6 +43,21 @@ class AuthorizationTest extends FacilitiesTestCase
         $this->assertSame(1, ServiceRequest::visibleTo($staff)->count());
     }
 
+    /**
+     * Every user also holds "requester" by default, but that must not leak
+     * a Service Staff member's own filed, still-unassigned request into
+     * their work queue — only assigned/history requests belong there.
+     */
+    public function test_staff_do_not_see_their_own_unassigned_requests(): void
+    {
+        $this->seed(FacilitiesRoleSeeder::class);
+        $staff = User::factory()->create()->assignRole(['service_staff', 'requester']);
+        $this->actingAs($staff);
+        ServiceRequest::factory()->create();
+
+        $this->assertSame(0, ServiceRequest::visibleTo($staff)->count());
+    }
+
     public function test_category_management_is_reserved_for_supervisors_and_admins(): void
     {
         $this->seed(FacilitiesRoleSeeder::class);
