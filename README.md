@@ -67,6 +67,20 @@ docker compose down
 
 Add `-v` only when you intentionally want to remove the PostgreSQL, Redis, and Node volumes.
 
+## Backups and PostgreSQL client version
+
+The PHP image includes PostgreSQL 16 client tools (`pg_dump` and `pg_restore`) to match the `postgres:16` database service. PostgreSQL does not allow an older `pg_dump` client to back up a newer server.
+
+After pulling this Dockerfile change, rebuild and recreate only the PHP service; this does not remove the database or its volumes:
+
+```sh
+docker compose build php
+docker compose up -d --no-deps --force-recreate php
+docker compose exec -T php pg_dump --version
+```
+
+The reported `pg_dump` major version must be 16 or newer while the database server remains PostgreSQL 16. If the database image major version changes, update the PHP image's PostgreSQL client major version at the same time.
+
 ## Focused Facilities demonstration
 
 For a small, repeatable role-and-workflow demonstration, run the additive migration and demo seeders:
