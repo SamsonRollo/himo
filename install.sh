@@ -113,10 +113,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     git \
+    gnupg \
     unzip \
     procps \
-    # pg_isready, used by the entrypoint to wait for the database
-    postgresql-client \
     # headers for the extensions built below
     libpq-dev \
     libicu-dev \
@@ -124,6 +123,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
+    && install -d -m 0755 /etc/apt/keyrings \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+        | gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    # Match the postgres:16 service: pg_dump must be the same major version or newer.
+    && apt-get install -y --no-install-recommends postgresql-client-16 \
     && rm -rf /var/lib/apt/lists/*
 
 # opcache is deliberately absent: PHP 8.5 links it statically, so
@@ -736,8 +743,8 @@ class DemoUserSeeder extends Seeder
 }
 EOF_USERSEEDER
 
-if keep database/seeders/DatabaseSeeder.php 'FacilitiesRoleSeeder'; then
-    SKIPPED+=("database/seeders/DatabaseSeeder.php — already calls FacilitiesRoleSeeder")
+if keep database/seeders/DatabaseSeeder.php 'PermissionRegistrar'; then
+    SKIPPED+=("database/seeders/DatabaseSeeder.php — already resets the permission cache")
 else
     write database/seeders/DatabaseSeeder.php <<'EOF_DBSEEDER'
 <?php
@@ -745,6 +752,7 @@ else
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
 {
@@ -760,6 +768,11 @@ class DatabaseSeeder extends Seeder
             FacilitiesRoleSeeder::class,
             HimoDemoDataSeeder::class,
         ]);
+
+        // Account role synchronization happens in the demo seeder. Reset the
+        // shared permission cache only after every seeder has finished so a
+        // freshly seeded Super Admin is never served stale role grants.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
 EOF_DBSEEDER

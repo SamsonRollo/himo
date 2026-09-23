@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,5 +20,10 @@ class DatabaseSeeder extends Seeder
             FacilitiesRoleSeeder::class,
             HimoDemoDataSeeder::class,
         ]);
+
+        // Account role synchronization happens in the demo seeder. Reset the
+        // shared permission cache only after every seeder has finished so a
+        // freshly seeded Super Admin is never served stale role grants.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
