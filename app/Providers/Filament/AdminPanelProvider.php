@@ -15,10 +15,14 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
+use Filament\Pages\Page;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Resources\Pages\Page as ResourcePage;
 use Filament\Support\Assets\Js;
 use Filament\Support\Colors\Color;
+use Filament\Support\Contracts\ScalableIcon;
+use Filament\Support\Enums\IconSize;
 use Filament\Tables\View\TablesRenderHook;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\View\WidgetsRenderHook;
@@ -27,6 +31,8 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -79,6 +85,10 @@ class AdminPanelProvider extends PanelProvider
                 fn () => view('filament.partials.topbar-brand-styles'),
             )
             ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): HtmlString => $this->currentModuleFavicon(),
+            )
+            ->renderHook(
                 PanelsRenderHook::TOPBAR_START,
                 fn () => view('filament.partials.topbar-brand-logo'),
             )
@@ -117,5 +127,32 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+    }
+
+    /**
+     * Favicon matching the navigation icon of the module being viewed (a
+     * resource page uses its resource's icon), recoloured UP Maroon since
+     * currentColor has no meaning in a browser tab. Pages outside any
+     * module, such as login, fall back to the HIMO logo.
+     */
+    private function currentModuleFavicon(): HtmlString
+    {
+        $page = Route::current()?->getControllerClass();
+
+        $icon = match (true) {
+            is_a($page, ResourcePage::class, true) => $page::getResource()::getNavigationIcon(),
+            is_a($page, Page::class, true) => $page::getNavigationIcon(),
+            default => null,
+        };
+
+        $iconName = $icon instanceof ScalableIcon ? $icon->getIconForSize(IconSize::Large) : $icon;
+
+        if (! is_string($iconName)) {
+            return new HtmlString('<link rel="icon" type="image/png" href="'.e(asset('images/branding/himo-logo.png')).'">');
+        }
+
+        $svg = str_replace('currentColor', '#7B1113', svg($iconName)->toHtml());
+
+        return new HtmlString('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,'.rawurlencode($svg).'">');
     }
 }
