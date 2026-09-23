@@ -41,4 +41,29 @@ class ReportingAndDemoTest extends FacilitiesTestCase
         Livewire::test(ServiceAccomplishmentReport::class)->assertCanNotSeeTableRecords(ServiceRequest::all());
         Livewire::test(StatusHistoriesRelationManager::class, ['ownerRecord' => $completed, 'pageClass' => ViewServiceRequest::class])->assertForbidden();
     }
+
+    public function test_csv_export_contains_only_the_filtered_rows_visible_to_the_user(): void
+    {
+        $this->freezeTime();
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $owner = User::factory()->create()->assignRole('requester');
+        $this->actingAs(User::factory()->create()->assignRole('requester'));
+        $othersRequest = ServiceRequest::factory()->create(['location' => 'Someone else room']);
+        $this->actingAs($owner);
+        $mine = ServiceRequest::factory()->create(['location' => '=HYPERLINK("x")']);
+        $mineButFilteredOut = ServiceRequest::factory()->create(['location' => 'Filtered out room']);
+
+        $component = Livewire::test(ServiceAccomplishmentReport::class)
+            ->filterTable('location', [$mine->location])
+            ->callAction('exportCsv')
+            ->assertFileDownloaded('service-accomplishment-report-'.now()->format('Ymd-His').'.csv');
+
+        $csv = base64_decode(data_get($component->effects, 'download.content'));
+        $this->assertStringContainsString('Request number', $csv);
+        $this->assertStringContainsString($mine->request_no, $csv);
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+        $this->assertStringNotContainsString($mineButFilteredOut->request_no, $csv);
+        $this->assertStringNotContainsString($othersRequest->request_no, $csv);
+        $this->assertStringNotContainsString('Someone else room', $csv);
+    }
 }
