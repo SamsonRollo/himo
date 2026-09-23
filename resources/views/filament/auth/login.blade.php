@@ -2,40 +2,42 @@
 <style>
     .himo-login-brand {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: nowrap;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
+        gap: 0.75rem;
+        width: 100%;
         margin-bottom: 1rem;
     }
 
-    .himo-login-brand-up {
+    .himo-login-brand-up,
+    .himo-login-brand-himo {
+        display: block;
+        flex: none;
         width: auto;
-        height: 2rem;
-        max-width: 4rem;
         object-fit: contain;
     }
 
+    .himo-login-brand-up {
+        height: 4rem;
+    }
+
     .himo-login-brand-himo {
-        width: auto;
-        height: 1.25rem;
-        max-width: 7rem;
-        object-fit: contain;
+        height: 2.5rem;
     }
 
     @media (min-width: 640px) {
         .himo-login-brand {
-            gap: 0.75rem;
             margin-bottom: 1.25rem;
         }
 
         .himo-login-brand-up {
-            height: 2.5rem;
-            max-width: 5rem;
+            height: 5rem;
         }
 
         .himo-login-brand-himo {
-            height: 1.5rem;
-            max-width: 8rem;
+            height: 3rem;
         }
     }
 </style>
